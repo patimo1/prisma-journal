@@ -1,0 +1,1847 @@
+{% extends "base.html" %}
+{% block title %}{% if editing %}Edit Entry{% else %}New Entry{% endif %}{% endblock %}
+
+{% block head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+    /* Tag Animation Styles */
+    .tag-entering {
+        opacity: 0;
+        transform: scale(0.8) translateY(-10px);
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    .tag-entered {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    
+    .tag-leaving {
+        opacity: 0;
+        transform: scale(0.8) translateX(-20px);
+        transition: all 0.3s ease-out;
+    }
+    
+    /* Smooth layout transitions for suggestion buttons */
+    #tag-suggestions-list {
+        transition: all 0.3s ease-out;
+    }
+    
+    #tag-suggestions-list button {
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    #tag-suggestions-list button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-100 mb-6">{% if editing %}Edit Entry{% else %}New Journal Entry{% endif %}</h1>
+
+    <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_260px] lg:gap-8">
+        <div>
+            {% if error %}
+            <div class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-lg p-4 mb-6">{{ error }}</div>
+            {% endif %}
+
+            {% if prompt and not editing %}
+            <div class="bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-800 rounded-lg p-4 mb-6">
+                <p class="text-sm font-medium text-primary-800 dark:text-primary-200">Prompt: {{ prompt.text }}</p>
+                <button onclick="refreshPrompt()" class="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 mt-1">Get another prompt</button>
+            </div>
+            {% endif %}
+
+            <form method="POST" class="space-y-6" id="entry-form">
+        <!-- Framework (shown when entry_type is framework) -->
+        {% if frameworks %}
+        <div id="framework-section" class="hidden">
+            <label for="framework_id" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Framework</label>
+            <select id="framework_id" name="framework_id"
+                    class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 text-surface-700 dark:text-surface-200 bg-white dark:bg-surface-800">
+                <option value="">None</option>
+                {% for fw in frameworks %}
+                <option value="{{ fw.id }}" {% if editing and entry and entry.framework_id == fw.id %}selected{% endif %}>{{ fw.name }} ({{ fw.category }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div id="framework-questions-panel" class="hidden border border-surface-200 dark:border-surface-700 rounded-lg bg-white dark:bg-surface-800 overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-surface-100 dark:border-surface-700">
+                <div>
+                    <p class="text-sm font-medium text-surface-700 dark:text-surface-300" id="framework-questions-title">Framework Questions</p>
+                    <p class="text-xs text-surface-400" id="framework-questions-description"></p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-xs text-surface-500" id="framework-questions-progress">0 of 0 answered</span>
+                    <label class="text-xs text-surface-500 flex items-center gap-1.5 cursor-pointer" title="Show one question at a time">
+                        <input type="checkbox" id="framework-wizard-mode" class="rounded border-surface-300 dark:border-surface-600 text-primary-600 w-3.5 h-3.5" onchange="toggleWizardMode()">
+                        <span>Step-by-step</span>
+                    </label>
+                </div>
+            </div>
+            <!-- All-at-once mode -->
+            <div class="px-4 py-4 space-y-4" id="framework-questions-list"></div>
+            <!-- Step-by-step wizard mode -->
+            <div id="framework-wizard-container" class="hidden">
+                <div class="px-4 py-4" id="framework-wizard-question"></div>
+                <!-- Microlearning tip -->
+                <div id="framework-wizard-tip" class="hidden mx-4 mb-4 p-3 rounded-lg bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800">
+                    <p class="text-xs text-primary-700 dark:text-primary-300"><span class="font-medium">Tip:</span> <span id="framework-wizard-tip-text"></span></p>
+                </div>
+                <!-- Navigation -->
+                <div class="px-4 py-3 border-t border-surface-100 dark:border-surface-700 flex items-center justify-between">
+                    <button type="button" id="wizard-prev-btn" onclick="wizardPrev()" class="px-4 py-1.5 rounded-lg text-sm font-medium border border-surface-200 dark:border-surface-600 text-surface-600 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                        &larr; Previous
+                    </button>
+                    <span class="text-sm font-medium text-surface-600 dark:text-surface-400" id="wizard-step-indicator">Question 1 of 5</span>
+                    <button type="button" id="wizard-next-btn" onclick="wizardNext()" class="px-4 py-1.5 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 transition">
+                        Next &rarr;
+                    </button>
+                </div>
+            </div>
+            <div class="px-4 py-3 border-t border-surface-100 dark:border-surface-700 flex items-center justify-between flex-wrap gap-3">
+                <label class="text-xs text-surface-500 flex items-center gap-2">
+                    <input type="checkbox" id="framework-build-content" class="rounded border-surface-300 dark:border-surface-600" checked>
+                    Build entry from answers
+                </label>
+                <p class="text-xs text-surface-400">Skip any question you want.</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Content -->
+        <div>
+            <label for="content" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Content</label>
+            <textarea id="content" name="content" rows="14"
+                      placeholder="Start writing..."
+                      class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-3 text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-y leading-relaxed">{{ entry.content if editing and entry else '' }}</textarea>
+            <div class="flex justify-between mt-1">
+                <span class="text-xs text-surface-400" id="word-count">0 words</span>
+            </div>
+        </div>
+
+        <!-- Voice Recording Panel -->
+        <div id="voice-panel" class="border border-surface-200 dark:border-surface-700 rounded-lg bg-white dark:bg-surface-800 overflow-hidden">
+            <!-- Panel header -->
+            <div class="flex items-center justify-between px-4 py-3 border-b border-surface-100 dark:border-surface-700">
+                <span class="text-sm font-medium text-surface-700 dark:text-surface-300">Voice Input</span>
+                <button type="button" id="voice-record-btn"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 transition"
+                        onclick="voiceToggleRecording()">
+                    <span id="voice-mic-icon">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M19 11a7 7 0 01-14 0m7 7v4m-4 0h8M12 1a3 3 0 00-3 3v7a3 3 0 006 0V4a3 3 0 00-3-3z"/>
+                        </svg>
+                    </span>
+                    <span id="voice-recording-dot" class="hidden recording-dot"></span>
+                    <span id="voice-record-label">Record</span>
+                    <span id="voice-record-timer" class="hidden font-mono text-xs"></span>
+                </button>
+            </div>
+
+            <!-- Recording state: waveform + timer -->
+            <div id="voice-recording-state" class="hidden px-4 py-3 space-y-2">
+                <canvas id="voice-waveform" class="voice-waveform"></canvas>
+                <div class="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-400">
+                    <span class="recording-dot"></span>
+                    <span>Recording: <span id="voice-timer">0:00</span></span>
+                </div>
+            </div>
+
+            <!-- Transcribing state: progress bar -->
+            <div id="voice-transcribing-state" class="hidden px-4 py-3 space-y-2">
+                <div class="progress-bar-track bg-surface-200 dark:bg-surface-700">
+                    <div class="progress-bar-fill bg-primary-500"></div>
+                </div>
+                <p class="text-sm text-surface-600 dark:text-surface-400">Transcribing...</p>
+            </div>
+
+            <!-- Preview state: editable text + actions -->
+            <div id="voice-preview-state" class="hidden px-4 py-3">
+                <div class="voice-preview-panel border-primary-200 dark:border-primary-700 bg-primary-50/50 dark:bg-primary-900/20 space-y-3">
+                    <textarea id="voice-preview-text" rows="3"
+                              class="w-full rounded-md border border-surface-300 dark:border-surface-600 px-3 py-2 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none resize-y"></textarea>
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <div class="flex items-center gap-3 text-xs text-surface-500 dark:text-surface-400">
+                            <span>Detected: <strong id="voice-detected-lang">—</strong></span>
+                            <span>Confidence: <strong id="voice-confidence">—</strong></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="voiceInsertAtCursor()"
+                                    class="px-3 py-1 rounded text-xs font-medium bg-primary-600 text-white hover:bg-primary-700 transition">
+                                Insert at Cursor
+                            </button>
+                            <button type="button" onclick="voiceReplaceAll()"
+                                    class="px-3 py-1 rounded text-xs font-medium bg-surface-200 dark:bg-surface-600 text-surface-700 dark:text-surface-200 hover:bg-surface-300 dark:hover:bg-surface-500 transition">
+                                Replace All
+                            </button>
+                            <button type="button" onclick="voiceDismissPreview()"
+                                    class="p-1 rounded text-surface-400 hover:text-surface-600 dark:hover:text-surface-200 hover:bg-surface-100 dark:hover:bg-surface-700 transition"
+                                    title="Dismiss">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error state -->
+            <div id="voice-error-state" class="hidden px-4 py-3">
+                <div class="flex items-start gap-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                    <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div class="flex-1">
+                        <p id="voice-error-message" class="text-sm text-red-700 dark:text-red-300"></p>
+                        <button type="button" onclick="voiceRetry()"
+                                class="mt-2 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 underline">
+                            Try Again
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Go Deeper Panel -->
+        <div id="deeper-panel" class="border border-surface-200 dark:border-surface-700 rounded-lg bg-white dark:bg-surface-800 overflow-hidden">
+            <!-- Panel header -->
+            <div class="flex items-center justify-between px-4 py-3 border-b border-surface-100 dark:border-surface-700">
+                <div class="flex items-center gap-2">
+                    <span class="text-sm font-medium text-surface-700 dark:text-surface-300">Go Deeper</span>
+                </div>
+                <button type="button" id="deeper-generate-btn"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 transition"
+                        onclick="deeperGenerate(true)">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>Generate Question</span>
+                </button>
+            </div>
+
+            <!-- Loading state -->
+            <div id="deeper-loading-state" class="hidden px-4 py-3 space-y-2">
+                <div class="progress-bar-track bg-surface-200 dark:bg-surface-700">
+                    <div class="progress-bar-fill bg-primary-500"></div>
+                </div>
+                <p class="text-sm text-surface-600 dark:text-surface-400">Generating a reflective question...</p>
+            </div>
+
+            <!-- Questions state -->
+            <div id="deeper-questions-state" class="hidden px-4 py-3">
+                <div class="space-y-2">
+                    <div id="deeper-questions-list" class="flex flex-wrap gap-2">
+                        <!-- Questions will be inserted here -->
+                    </div>
+                    <div class="flex items-center justify-between pt-2 border-t border-surface-100 dark:border-surface-700">
+                        <p class="text-xs text-surface-500 dark:text-surface-400">Click the question to insert it into your entry</p>
+                        <button type="button" onclick="deeperNewQuestion()"
+                                class="text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">
+                            New Question
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error state -->
+            <div id="deeper-error-state" class="hidden px-4 py-3">
+                <div class="flex items-start gap-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                    <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div class="flex-1">
+                        <p id="deeper-error-message" class="text-sm text-red-700 dark:text-red-300"></p>
+                        <button type="button" onclick="deeperGenerate(true)"
+                                class="mt-2 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 underline">
+                            Try Again
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty/hint state -->
+            <div id="deeper-empty-state" class="px-4 py-3">
+                <p class="text-sm text-surface-500 dark:text-surface-400">Write some content above, then click "Generate Question" to get an AI-powered prompt that helps you explore your thoughts more deeply.</p>
+            </div>
+        </div>
+
+        <!-- Smart Tags Section -->
+        <div id="tags-section" class="border border-surface-200 dark:border-surface-700 rounded-lg bg-white dark:bg-surface-800 overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-4 py-3 border-b border-surface-100 dark:border-surface-700">
+                <div class="flex items-center gap-2">
+                    <span class="text-sm font-medium text-surface-700 dark:text-surface-300">Tags</span>
+                    <span id="tag-count-badge" class="hidden text-[10px] px-1.5 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300">0</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="tag-suggest-spinner" class="hidden text-xs text-surface-400">
+                        <svg class="animate-spin h-3 w-3 inline mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Analysiere...
+                    </span>
+                    <button type="button" id="suggest-tags-btn" onclick="TagSuggester.refreshSuggestions()"
+                            class="text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition">
+                        Tags vorschlagen
+                    </button>
+                </div>
+            </div>
+
+            <!-- Baustellen Connections -->
+            <div id="baustellen-connections-panel" class="hidden border-b border-surface-100 dark:border-surface-700 px-4 py-2 bg-amber-50/50 dark:bg-amber-900/10">
+                <p class="text-xs text-amber-700 dark:text-amber-400 font-medium mb-1">Verbindet zu deinen Baustellen:</p>
+                <div id="baustellen-connections-list" class="flex flex-wrap gap-1">
+                    <!-- Baustellen badges will render here -->
+                </div>
+            </div>
+
+            <!-- Tag Chips Container -->
+            <div class="px-4 py-3">
+                <div id="tag-chips-container" class="flex flex-wrap gap-2 mb-3">
+                    <!-- Tags will be rendered here by JavaScript -->
+                </div>
+
+                <!-- Tag Input -->
+                <div class="flex gap-2">
+                    <input type="text" id="tag-input"
+                           placeholder="Tag hinzufügen (Enter drücken)"
+                           class="flex-1 rounded-lg border border-surface-300 dark:border-surface-600 px-3 py-2 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                           onkeydown="TagSuggester.handleInputKeydown(event)">
+                    <input type="hidden" id="tags" name="tags" value="{{ entry.tags | join(', ') if editing and entry and entry.tags else '' }}">
+                    <button type="button" onclick="TagSuggester.addTagFromInput()"
+                            class="px-3 py-2 rounded-lg bg-surface-200 dark:bg-surface-600 text-surface-700 dark:text-surface-200 hover:bg-surface-300 dark:hover:bg-surface-500 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Suggestions Panel -->
+            <div id="tag-suggestions-panel" class="hidden border-t border-surface-100 dark:border-surface-700">
+                <!-- Existing Tags Section -->
+                <div class="px-4 py-3 bg-surface-50 dark:bg-surface-700/30 border-b border-surface-100 dark:border-surface-700">
+                    <div class="flex items-center gap-2 mb-2">
+                        <svg class="w-3.5 h-3.5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                        </svg>
+                        <p class="text-xs font-medium text-surface-700 dark:text-surface-300">Aus deinen bestehenden Tags</p>
+                        <span class="text-[10px] text-surface-400">(Bekannte Kategorien)</span>
+                    </div>
+                    <div id="tag-suggestions-existing" class="flex flex-wrap gap-2">
+                        <!-- Existing tag suggestions will render here -->
+                    </div>
+                </div>
+
+                <!-- New Tags Section -->
+                <div class="px-4 py-3 bg-blue-50/50 dark:bg-blue-900/10">
+                    <div class="flex items-center gap-2 mb-2">
+                        <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                        <p class="text-xs font-medium text-blue-700 dark:text-blue-400">Neue Ideen</p>
+                        <span class="text-[10px] text-blue-500">(Erweitert dein System)</span>
+                    </div>
+                    <div id="tag-suggestions-new" class="flex flex-wrap gap-2">
+                        <!-- New tag suggestions will render here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error/Info Message -->
+            <div id="tag-message" class="hidden px-4 py-2 border-t border-surface-100 dark:border-surface-700 text-xs"></div>
+        </div>
+
+        <!-- Submit -->
+        <div class="flex gap-3">
+            {% if editing %}
+            <button type="submit" class="bg-primary-600 text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-primary-700 transition">
+                Save Changes
+            </button>
+            {% else %}
+            <button type="button" id="finish-entry-btn" onclick="finishEntry()" class="bg-primary-600 text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-primary-700 transition">
+                Finish Entry
+            </button>
+            <button type="submit" class="bg-surface-200 dark:bg-surface-600 text-surface-700 dark:text-surface-200 font-medium px-6 py-2.5 rounded-lg hover:bg-surface-300 dark:hover:bg-surface-500 transition">
+                Save Without Analysis
+            </button>
+            {% endif %}
+            <a href="{% if editing %}/entry/{{ entry.id }}{% else %}/{% endif %}" class="bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-300 font-medium px-6 py-2.5 rounded-lg hover:bg-surface-200 dark:hover:bg-surface-600 transition">Cancel</a>
+        </div>
+            </form>
+        </div>
+
+        <aside class="mt-8 lg:mt-0 lg:sticky lg:top-6 self-start" aria-live="polite">
+            <div class="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-2xl p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-semibold text-surface-900 dark:text-surface-100">Past Memories</h2>
+                    <span class="text-[10px] uppercase tracking-wider text-surface-400">Auto</span>
+                </div>
+                <p class="text-xs text-surface-500 dark:text-surface-400 mb-4">As you write, we will surface entries that feel related.</p>
+                <div id="memory-empty" class="text-xs text-surface-400 bg-surface-50 dark:bg-surface-700/40 rounded-lg p-3">
+                    No similar memories yet. Keep writing to see connections.
+                </div>
+                <div id="memory-list" class="space-y-3 hidden"></div>
+            </div>
+        </aside>
+    </div>
+</div>
+
+<!-- Analysis Progress Modal -->
+<div id="analysis-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex min-h-full items-center justify-center p-4">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-black/50 transition-opacity" onclick="closeAnalysisModal()"></div>
+
+        <!-- Modal panel -->
+        <div class="relative bg-white dark:bg-surface-800 rounded-xl shadow-2xl w-full max-w-lg p-6 transform transition-all">
+            <h2 class="text-xl font-bold text-surface-900 dark:text-surface-100 mb-4">Analyzing Your Entry</h2>
+
+            <!-- Progress steps -->
+            <div class="space-y-3 mb-6">
+                <!-- Step 1: Emotions -->
+                <div id="analysis-step-1" class="flex items-center gap-3 p-3 rounded-lg bg-surface-50 dark:bg-surface-700/50">
+                    <div id="analysis-step-1-icon" class="flex-shrink-0 w-6 h-6 flex items-center justify-center">
+                        <span class="analysis-step-pending w-2 h-2 rounded-full bg-surface-300 dark:bg-surface-500"></span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p id="analysis-step-1-text" class="text-sm font-medium text-surface-700 dark:text-surface-300">Analyzing emotions...</p>
+                    </div>
+                </div>
+
+                <!-- Step 2: Summary -->
+                <div id="analysis-step-2" class="flex items-center gap-3 p-3 rounded-lg bg-surface-50 dark:bg-surface-700/50">
+                    <div id="analysis-step-2-icon" class="flex-shrink-0 w-6 h-6 flex items-center justify-center">
+                        <span class="analysis-step-pending w-2 h-2 rounded-full bg-surface-300 dark:bg-surface-500"></span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p id="analysis-step-2-text" class="text-sm font-medium text-surface-700 dark:text-surface-300">Generating summary...</p>
+                    </div>
+                </div>
+
+                <!-- Step 3: Patterns -->
+                <div id="analysis-step-3" class="flex items-center gap-3 p-3 rounded-lg bg-surface-50 dark:bg-surface-700/50">
+                    <div id="analysis-step-3-icon" class="flex-shrink-0 w-6 h-6 flex items-center justify-center">
+                        <span class="analysis-step-pending w-2 h-2 rounded-full bg-surface-300 dark:bg-surface-500"></span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p id="analysis-step-3-text" class="text-sm font-medium text-surface-700 dark:text-surface-300">Identifying patterns...</p>
+                    </div>
+                </div>
+
+                <!-- Step 4: Artwork -->
+                <div id="analysis-step-4" class="flex items-center gap-3 p-3 rounded-lg bg-surface-50 dark:bg-surface-700/50">
+                    <div id="analysis-step-4-icon" class="flex-shrink-0 w-6 h-6 flex items-center justify-center">
+                        <span class="analysis-step-pending w-2 h-2 rounded-full bg-surface-300 dark:bg-surface-500"></span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p id="analysis-step-4-text" class="text-sm font-medium text-surface-700 dark:text-surface-300">Generating artwork...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overall progress bar -->
+            <div class="mb-4">
+                <div class="h-2 bg-surface-200 dark:bg-surface-700 rounded-full overflow-hidden">
+                    <div id="analysis-progress-bar" class="h-full bg-primary-500 transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <p id="analysis-progress-text" class="text-xs text-surface-500 dark:text-surface-400 mt-1 text-center">Starting analysis...</p>
+            </div>
+
+            <!-- Error message -->
+            <div id="analysis-error" class="hidden mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+                <p id="analysis-error-text" class="text-sm text-red-700 dark:text-red-300"></p>
+            </div>
+
+            <!-- Action buttons -->
+            <div id="analysis-actions" class="flex gap-3 justify-end">
+                <button type="button" id="analysis-cancel-btn" onclick="cancelAnalysis()" class="px-4 py-2 text-sm font-medium text-surface-600 dark:text-surface-400 hover:text-surface-800 dark:hover:text-surface-200 transition">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Past Memories Modal -->
+<div id="memory-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="fixed inset-0 bg-black/50 transition-opacity" onclick="closeMemoryModal()"></div>
+        <div class="relative bg-white dark:bg-surface-800 rounded-2xl shadow-2xl w-full max-w-2xl p-6">
+            <div class="flex items-start justify-between gap-4 mb-4">
+                <div>
+                    <h3 id="memory-modal-title" class="text-xl font-bold text-surface-900 dark:text-surface-100">Memory</h3>
+                    <p id="memory-modal-date" class="text-xs text-surface-500 dark:text-surface-400 mt-1"></p>
+                </div>
+                <button type="button" onclick="closeMemoryModal()" class="p-2 rounded-lg text-surface-400 hover:text-surface-700 dark:hover:text-surface-200 hover:bg-surface-100 dark:hover:bg-surface-700 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="memory-modal-content" class="prose text-surface-700 dark:text-surface-200 text-sm whitespace-pre-wrap"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // ── Word count ──────────────────────────────────────────────────────
+    const textarea = document.getElementById('content');
+    const wordCount = document.getElementById('word-count');
+    function updateWordCount() {
+        const text = textarea.value.trim();
+        const count = text ? text.split(/\s+/).length : 0;
+        wordCount.textContent = count + ' word' + (count !== 1 ? 's' : '');
+    }
+    textarea.addEventListener('input', () => {
+        updateWordCount();
+        triggerMemoryLookup();
+    });
+    updateWordCount();
+
+    // ── Shared Utility ─────────────────────────────────────────────────
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // ── Past Memories ───────────────────────────────────────────────────
+    const memoryList = document.getElementById('memory-list');
+    const memoryEmpty = document.getElementById('memory-empty');
+    const memoryModal = document.getElementById('memory-modal');
+    const memoryModalTitle = document.getElementById('memory-modal-title');
+    const memoryModalDate = document.getElementById('memory-modal-date');
+    const memoryModalContent = document.getElementById('memory-modal-content');
+    let memoryLastQuery = '';
+    let memoryLoading = false;
+
+    const fetchMemories = debounce(async () => {
+        const content = textarea.value.trim();
+        if (content.length < 40) {
+            memoryList.classList.add('hidden');
+            memoryEmpty.classList.remove('hidden');
+            memoryList.innerHTML = '';
+            return;
+        }
+        if (memoryLoading) return;
+        if (content === memoryLastQuery) return;
+        memoryLastQuery = content;
+        memoryLoading = true;
+        try {
+            const resp = await fetch('/api/memory/similar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ current_text: content, exclude_recent_days: 7 })
+            });
+            const data = await resp.json();
+            renderMemories(data.similar_entries || []);
+        } catch (e) {
+            renderMemories([]);
+        } finally {
+            memoryLoading = false;
+        }
+    }, 300);
+
+    function triggerMemoryLookup() {
+        fetchMemories();
+    }
+
+    function renderMemories(entries) {
+        if (!entries.length) {
+            memoryList.classList.add('hidden');
+            memoryEmpty.classList.remove('hidden');
+            memoryList.innerHTML = '';
+            return;
+        }
+        memoryEmpty.classList.add('hidden');
+        memoryList.classList.remove('hidden');
+        memoryList.innerHTML = '';
+        entries.slice(0, 3).forEach(entry => {
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'w-full text-left bg-surface-50 dark:bg-surface-700/50 border border-surface-200 dark:border-surface-600 rounded-xl p-3 hover:border-primary-300 dark:hover:border-primary-500 transition';
+            const dateText = entry.date ? formatDate(entry.date) : 'earlier';
+            card.innerHTML = `
+                <p class="text-[11px] uppercase tracking-wider text-surface-400">This reminds me of ${dateText}</p>
+                <p class="text-sm font-medium text-surface-800 dark:text-surface-100 mt-1 line-clamp-2">${entry.title || 'Untitled'}</p>
+                <p class="text-xs text-surface-500 dark:text-surface-300 mt-1 line-clamp-2">${entry.excerpt || ''}</p>
+            `;
+            card.addEventListener('click', () => openMemoryModal(entry.entry_id));
+            memoryList.appendChild(card);
+        });
+    }
+
+    async function openMemoryModal(entryId) {
+        if (!entryId) return;
+        try {
+            const resp = await fetch(`/api/entries/${entryId}`);
+            const data = await resp.json();
+            if (!data.entry) return;
+            const entry = data.entry;
+            memoryModalTitle.textContent = entry.summary || 'Journal Entry';
+            memoryModalDate.textContent = entry.created_at ? formatDate(entry.created_at) : '';
+            memoryModalContent.textContent = entry.content || '';
+            memoryModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        } catch (e) {
+            // ignore
+        }
+    }
+
+    function closeMemoryModal() {
+        memoryModal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    // ── Show/hide framework selector ────────────────────────────────────
+    const fwSection = document.getElementById('framework-section');
+    const fwSelect = document.getElementById('framework_id');
+    const fwPanel = document.getElementById('framework-questions-panel');
+    const fwQuestionsList = document.getElementById('framework-questions-list');
+    const fwQuestionsTitle = document.getElementById('framework-questions-title');
+    const fwQuestionsDescription = document.getElementById('framework-questions-description');
+    const fwQuestionsProgress = document.getElementById('framework-questions-progress');
+    const fwBuildToggle = document.getElementById('framework-build-content');
+    {% if frameworks %}
+    const frameworkData = {{ frameworks | tojson }};
+    {% else %}
+    const frameworkData = [];
+    {% endif %}
+    const frameworkMap = new Map(frameworkData.map(fw => [String(fw.id), fw]));
+
+    function getFrameworkAnswers() {
+        if (!fwQuestionsList) return [];
+        const answers = [];
+        fwQuestionsList.querySelectorAll('[data-question-id]').forEach(wrapper => {
+            const input = wrapper.querySelector('textarea, input');
+            if (!input) return;
+            answers.push({
+                id: wrapper.dataset.questionId,
+                question: wrapper.dataset.questionText || '',
+                answer: input.value || ''
+            });
+        });
+        return answers;
+    }
+
+    function updateFrameworkProgress() {
+        if (!fwQuestionsProgress || !fwQuestionsList) return;
+        const answers = getFrameworkAnswers();
+        const answered = answers.filter(item => item.answer.trim().length > 0).length;
+        const total = answers.length;
+        fwQuestionsProgress.textContent = `${answered} of ${total} answered`;
+    }
+
+    function renderFrameworkQuestions(frameworkId) {
+        if (!fwPanel || !fwQuestionsList) return;
+        const framework = frameworkMap.get(String(frameworkId || ''));
+        if (!framework || !Array.isArray(framework.questions) || framework.questions.length === 0) {
+            fwPanel.classList.add('hidden');
+            fwQuestionsList.innerHTML = '';
+            return;
+        }
+
+        fwPanel.classList.remove('hidden');
+        fwQuestionsTitle.textContent = framework.name || 'Framework Questions';
+        fwQuestionsDescription.textContent = framework.description || '';
+
+        fwQuestionsList.innerHTML = '';
+        framework.questions.forEach((q, index) => {
+            const wrapper = document.createElement('div');
+            wrapper.dataset.questionId = q.id || `q${index + 1}`;
+            wrapper.dataset.questionText = q.question || '';
+            const required = q.required ? '<span class="text-primary-500">*</span>' : '';
+            const labelHtml = `
+                <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                    ${q.question || 'Untitled question'} ${required}
+                </label>
+            `;
+            const inputHtml = q.type === 'input'
+                ? `<input type="text" class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none" placeholder="${q.placeholder || ''}">`
+                : `<textarea rows="3" class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-y" placeholder="${q.placeholder || ''}"></textarea>`;
+            wrapper.innerHTML = labelHtml + inputHtml;
+            const input = wrapper.querySelector('textarea, input');
+            if (input) {
+                input.addEventListener('input', updateFrameworkProgress);
+            }
+            fwQuestionsList.appendChild(wrapper);
+        });
+
+        updateFrameworkProgress();
+    }
+
+    function toggleFramework() {
+        const hasFramework = fwSelect?.value;
+        if (fwSection) {
+            fwSection.classList.toggle('hidden', !hasFramework);
+        }
+        if (fwPanel) {
+            fwPanel.classList.toggle('hidden', !hasFramework);
+        }
+    }
+    if (fwSelect) {
+        fwSelect.addEventListener('change', () => {
+            renderFrameworkQuestions(fwSelect.value);
+            toggleFramework();
+        });
+    }
+    toggleFramework();
+    if (fwSelect && fwSelect.value) {
+        renderFrameworkQuestions(fwSelect.value);
+    }
+
+    const entryForm = document.getElementById('entry-form');
+    if (entryForm) {
+        entryForm.addEventListener('submit', () => {
+            if (!fwSelect?.value) return;
+            if (fwBuildToggle && !fwBuildToggle.checked) return;
+
+            const framework = frameworkMap.get(String(fwSelect.value));
+            if (!framework) return;
+
+            const answers = getFrameworkAnswers();
+            const filled = answers.filter(item => item.answer.trim().length > 0);
+            if (!filled.length) return;
+
+            const header = `Framework: ${framework.name}`;
+            const body = filled.map(item => `Q: ${item.question}\nA: ${item.answer}`).join('\n\n');
+            textarea.value = `${header}\n\n${body}`.trim();
+        });
+    }
+
+    // ── Framework Wizard Mode ────────────────────────────────────────────
+    const wizardModeCheckbox = document.getElementById('framework-wizard-mode');
+    const wizardContainer = document.getElementById('framework-wizard-container');
+    const wizardQuestionEl = document.getElementById('framework-wizard-question');
+    const wizardTipEl = document.getElementById('framework-wizard-tip');
+    const wizardTipText = document.getElementById('framework-wizard-tip-text');
+    const wizardStepIndicator = document.getElementById('wizard-step-indicator');
+    const wizardPrevBtn = document.getElementById('wizard-prev-btn');
+    const wizardNextBtn = document.getElementById('wizard-next-btn');
+    let wizardCurrentStep = 0;
+    let wizardAnswers = {}; // Store answers keyed by question id
+
+    // Microlearning tips for different framework categories
+    const frameworkTips = {
+        'CBT': [
+            'CBT helps identify the connection between thoughts, feelings, and behaviors.',
+            'Our automatic thoughts often contain cognitive distortions that we can learn to recognize.',
+            'Emotions are valid, but the thoughts driving them may need examination.',
+            'Behavior patterns can reinforce or break negative thought cycles.',
+            'Alternative thoughts don\'t have to be positive—just more balanced and realistic.'
+        ],
+        'Reflection': [
+            'Regular reflection builds self-awareness over time.',
+            'Writing helps process emotions more effectively than just thinking.',
+            'Looking for patterns across entries reveals deeper insights.',
+            'Be curious about your reactions, not judgmental.'
+        ],
+        'Stoic': [
+            'The Stoics focused on what\'s within our control: our thoughts, actions, and responses.',
+            'External events are neutral—our judgments about them create our emotions.',
+            'Practicing virtue (wisdom, justice, courage, temperance) leads to tranquility.',
+            'Memento mori: remembering our mortality helps prioritize what matters.'
+        ],
+        'Gratitude': [
+            'Gratitude practice rewires the brain to notice positive experiences.',
+            'Specificity matters—detailed gratitude is more impactful than generic.',
+            'Expressing gratitude to others strengthens relationships.',
+            'Even challenges can contain hidden gifts worth acknowledging.'
+        ],
+        'Goal': [
+            'Clear goals provide direction and motivation.',
+            'Breaking big goals into small steps makes them achievable.',
+            'Writing down goals significantly increases follow-through.',
+            'Regular review helps maintain focus and allows course correction.'
+        ],
+        'Problem': [
+            'Clearly defining the problem is half the solution.',
+            'Brainstorming without judgment generates more creative options.',
+            'Weighing pros and cons helps overcome decision paralysis.',
+            'Action, even imperfect, creates feedback and learning.'
+        ],
+        'default': [
+            'Taking time to reflect deepens understanding of yourself.',
+            'There are no wrong answers—just honest exploration.',
+            'Writing activates different brain regions than thinking alone.',
+            'Patterns often emerge across multiple journal entries.'
+        ]
+    };
+
+    function getFrameworkCategory(frameworkId) {
+        const framework = frameworkMap.get(String(frameworkId || ''));
+        if (!framework) return 'default';
+        const name = (framework.name || '').toLowerCase();
+        if (name.includes('cbt') || name.includes('cognitive')) return 'CBT';
+        if (name.includes('stoic')) return 'Stoic';
+        if (name.includes('gratitude')) return 'Gratitude';
+        if (name.includes('goal')) return 'Goal';
+        if (name.includes('problem')) return 'Problem';
+        if (name.includes('reflection') || name.includes('review')) return 'Reflection';
+        return framework.category || 'default';
+    }
+
+    function getTipForStep(frameworkId, stepIndex) {
+        const category = getFrameworkCategory(frameworkId);
+        const tips = frameworkTips[category] || frameworkTips['default'];
+        return tips[stepIndex % tips.length];
+    }
+
+    function toggleWizardMode() {
+        const isWizard = wizardModeCheckbox && wizardModeCheckbox.checked;
+        if (!fwQuestionsList || !wizardContainer) return;
+
+        if (isWizard) {
+            // Save current answers from all-at-once mode
+            saveAllAnswersToWizard();
+            fwQuestionsList.classList.add('hidden');
+            wizardContainer.classList.remove('hidden');
+            wizardCurrentStep = 0;
+            renderWizardStep();
+        } else {
+            // Restore answers to all-at-once mode
+            restoreAnswersFromWizard();
+            fwQuestionsList.classList.remove('hidden');
+            wizardContainer.classList.add('hidden');
+        }
+        localStorage.setItem('framework_wizard_mode', isWizard ? '1' : '0');
+    }
+    window.toggleWizardMode = toggleWizardMode;
+
+    function saveAllAnswersToWizard() {
+        const answers = getFrameworkAnswers();
+        wizardAnswers = {};
+        answers.forEach(a => { wizardAnswers[a.id] = a.answer; });
+    }
+
+    function restoreAnswersFromWizard() {
+        fwQuestionsList.querySelectorAll('[data-question-id]').forEach(wrapper => {
+            const input = wrapper.querySelector('textarea, input');
+            if (input && wizardAnswers[wrapper.dataset.questionId]) {
+                input.value = wizardAnswers[wrapper.dataset.questionId];
+            }
+        });
+        updateFrameworkProgress();
+    }
+
+    function getWizardQuestions() {
+        const frameworkId = fwSelect ? fwSelect.value : '';
+        const framework = frameworkMap.get(String(frameworkId || ''));
+        return (framework && Array.isArray(framework.questions)) ? framework.questions : [];
+    }
+
+    function renderWizardStep() {
+        const questions = getWizardQuestions();
+        if (!questions.length) return;
+
+        const total = questions.length;
+        const q = questions[wizardCurrentStep];
+        const qId = q.id || `q${wizardCurrentStep + 1}`;
+        const required = q.required ? '<span class="text-primary-500">*</span>' : '';
+
+        // Render question
+        const inputValue = wizardAnswers[qId] || '';
+        const inputHtml = q.type === 'input'
+            ? `<input type="text" id="wizard-input-${qId}" class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none" placeholder="${q.placeholder || ''}" value="${escapeHtml(inputValue)}">`
+            : `<textarea id="wizard-input-${qId}" rows="4" class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-y" placeholder="${q.placeholder || ''}">${escapeHtml(inputValue)}</textarea>`;
+
+        wizardQuestionEl.innerHTML = `
+            <label class="block text-base font-medium text-surface-800 dark:text-surface-200 mb-3">
+                ${q.question || 'Untitled question'} ${required}
+            </label>
+            ${inputHtml}
+        `;
+
+        // Add input listener to save answer
+        const input = wizardQuestionEl.querySelector('textarea, input');
+        if (input) {
+            input.addEventListener('input', () => {
+                wizardAnswers[qId] = input.value;
+                syncWizardToAllAtOnce(qId, input.value);
+                updateFrameworkProgress();
+            });
+            input.focus();
+        }
+
+        // Update step indicator
+        wizardStepIndicator.textContent = `Question ${wizardCurrentStep + 1} of ${total}`;
+
+        // Update navigation buttons
+        wizardPrevBtn.disabled = wizardCurrentStep === 0;
+        wizardNextBtn.textContent = wizardCurrentStep === total - 1 ? 'Done ✓' : 'Next →';
+
+        // Show microlearning tip
+        const tip = getTipForStep(fwSelect ? fwSelect.value : '', wizardCurrentStep);
+        if (tip && wizardTipEl && wizardTipText) {
+            wizardTipText.textContent = tip;
+            wizardTipEl.classList.remove('hidden');
+        }
+    }
+
+    function syncWizardToAllAtOnce(qId, value) {
+        const wrapper = fwQuestionsList.querySelector(`[data-question-id="${qId}"]`);
+        if (wrapper) {
+            const input = wrapper.querySelector('textarea, input');
+            if (input) input.value = value;
+        }
+    }
+
+    function wizardPrev() {
+        if (wizardCurrentStep > 0) {
+            wizardCurrentStep--;
+            renderWizardStep();
+        }
+    }
+    window.wizardPrev = wizardPrev;
+
+    function wizardNext() {
+        const questions = getWizardQuestions();
+        if (wizardCurrentStep < questions.length - 1) {
+            wizardCurrentStep++;
+            renderWizardStep();
+        } else {
+            // Done - switch back to all-at-once view or stay in wizard
+            restoreAnswersFromWizard();
+            // Optionally auto-disable wizard mode
+            // wizardModeCheckbox.checked = false;
+            // toggleWizardMode();
+        }
+    }
+    window.wizardNext = wizardNext;
+
+    // Restore wizard mode preference
+    if (wizardModeCheckbox && localStorage.getItem('framework_wizard_mode') === '1') {
+        wizardModeCheckbox.checked = true;
+        // Will be activated when framework is selected
+    }
+
+    // Re-render wizard when framework changes (if in wizard mode)
+    const originalRenderFrameworkQuestions = renderFrameworkQuestions;
+    renderFrameworkQuestions = function(frameworkId) {
+        originalRenderFrameworkQuestions(frameworkId);
+        if (wizardModeCheckbox && wizardModeCheckbox.checked) {
+            wizardAnswers = {};
+            wizardCurrentStep = 0;
+            fwQuestionsList.classList.add('hidden');
+            wizardContainer.classList.remove('hidden');
+            renderWizardStep();
+        }
+    };
+
+    // ── Refresh prompt ──────────────────────────────────────────────────
+    async function refreshPrompt() {
+        try {
+            const resp = await fetch('/api/prompt');
+            const data = await resp.json();
+            if (data.text) {
+                document.querySelector('.bg-primary-50 p').textContent = 'Prompt: ' + data.text;
+            }
+        } catch (e) { /* ignore */ }
+    }
+
+    // ── Go Deeper ──────────────────────────────────────────────────────
+
+    // State
+    let deeperPreviousQuestions = [];
+    let deeperIsLoading = false;
+
+    // DOM refs
+    const deeperLoadingState = document.getElementById('deeper-loading-state');
+    const deeperQuestionsState = document.getElementById('deeper-questions-state');
+    const deeperErrorState = document.getElementById('deeper-error-state');
+    const deeperEmptyState = document.getElementById('deeper-empty-state');
+    const deeperQuestionsList = document.getElementById('deeper-questions-list');
+    const deeperErrorMessage = document.getElementById('deeper-error-message');
+
+    function deeperShowState(state) {
+        deeperLoadingState.classList.toggle('hidden', state !== 'loading');
+        deeperQuestionsState.classList.toggle('hidden', state !== 'questions');
+        deeperErrorState.classList.toggle('hidden', state !== 'error');
+        deeperEmptyState.classList.toggle('hidden', state !== 'empty');
+    }
+
+    async function deeperGenerate(resetHistory) {
+        if (deeperIsLoading) return;
+
+        const content = textarea.value.trim();
+        if (!content || content.length < 20) {
+            deeperErrorMessage.textContent = 'Please write at least a few sentences before generating a question.';
+            deeperShowState('error');
+            return;
+        }
+
+        if (resetHistory) {
+            deeperPreviousQuestions = [];
+        }
+
+        deeperIsLoading = true;
+        deeperShowState('loading');
+
+        try {
+            const resp = await fetch('/api/generate/deeper-questions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: content,
+                    previous_questions: deeperPreviousQuestions
+                })
+            });
+
+            const data = await resp.json();
+
+            if (data.error) {
+                deeperErrorMessage.textContent = data.error;
+                deeperShowState('error');
+                return;
+            }
+
+            const nextQuestions = [];
+            if (data.question && typeof data.question === 'string') {
+                nextQuestions.push(data.question);
+            }
+            if (Array.isArray(data.questions)) {
+                nextQuestions.push(...data.questions);
+            }
+
+            const cleanedQuestions = nextQuestions.filter(q => typeof q === 'string' && q.trim()).slice(0, 5);
+
+            if (cleanedQuestions.length > 0) {
+                deeperPreviousQuestions.push(...cleanedQuestions);
+                deeperDisplayQuestions(cleanedQuestions);
+                deeperShowState('questions');
+            } else {
+                deeperErrorMessage.textContent = 'No question generated. Please try again.';
+                deeperShowState('error');
+            }
+        } catch (e) {
+            deeperErrorMessage.textContent = 'Could not connect to the server. Check your connection.';
+            deeperShowState('error');
+        } finally {
+            deeperIsLoading = false;
+        }
+    }
+
+    function deeperDisplayQuestions(questions) {
+        deeperQuestionsList.innerHTML = '';
+        questions.forEach(q => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'px-3 py-2 text-sm text-left rounded-lg border border-surface-200 dark:border-surface-600 bg-surface-50 dark:bg-surface-700 text-surface-700 dark:text-surface-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:border-primary-300 dark:hover:border-primary-700 hover:text-primary-700 dark:hover:text-primary-300 transition cursor-pointer';
+            btn.innerHTML = escapeHtml(q);
+            btn.onclick = () => deeperInsertQuestion(q);
+            deeperQuestionsList.appendChild(btn);
+        });
+    }
+
+    function deeperInsertQuestion(question) {
+        const formattedQuestion = '\n\n**' + question + '**\n\n';
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const before = textarea.value.substring(0, start);
+        const after = textarea.value.substring(end);
+
+        textarea.value = before + formattedQuestion + after;
+
+        // Move cursor to end of inserted question (ready to answer)
+        const newPos = before.length + formattedQuestion.length;
+        textarea.selectionStart = newPos;
+        textarea.selectionEnd = newPos;
+        textarea.focus();
+        updateWordCount();
+    }
+
+    function deeperNewQuestion() {
+        deeperGenerate(false);
+    }
+
+    // ── Entry Analysis ─────────────────────────────────────────────────────
+
+    let analysisEventSource = null;
+    let analysisEntryId = null;
+
+    const analysisModal = document.getElementById('analysis-modal');
+    const analysisProgressBar = document.getElementById('analysis-progress-bar');
+    const analysisProgressText = document.getElementById('analysis-progress-text');
+    const analysisError = document.getElementById('analysis-error');
+    const analysisErrorText = document.getElementById('analysis-error-text');
+    const analysisCancelBtn = document.getElementById('analysis-cancel-btn');
+    const analysisActions = document.getElementById('analysis-actions');
+
+    const STEP_LABELS = {
+        1: 'Analyzing emotions...',
+        2: 'Generating summary...',
+        3: 'Identifying patterns...',
+        4: 'Generating artwork...'
+    };
+
+    function showAnalysisModal() {
+        analysisModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        // Reset all steps
+        for (let i = 1; i <= 4; i++) {
+            updateStepIcon(i, 'pending');
+            document.getElementById(`analysis-step-${i}-text`).textContent = STEP_LABELS[i];
+        }
+        analysisProgressBar.style.width = '0%';
+        analysisProgressText.textContent = 'Starting analysis...';
+        analysisError.classList.add('hidden');
+        analysisCancelBtn.textContent = 'Cancel';
+        analysisActions.innerHTML = `
+            <button type="button" id="analysis-cancel-btn" onclick="cancelAnalysis()" class="px-4 py-2 text-sm font-medium text-surface-600 dark:text-surface-400 hover:text-surface-800 dark:hover:text-surface-200 transition">
+                Cancel
+            </button>
+        `;
+    }
+
+    function closeAnalysisModal() {
+        analysisModal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    function updateStepIcon(step, status) {
+        const iconContainer = document.getElementById(`analysis-step-${step}-icon`);
+        if (!iconContainer) return;
+
+        if (status === 'running') {
+            iconContainer.innerHTML = `<div class="analysis-spinner text-primary-500"></div>`;
+        } else if (status === 'complete') {
+            iconContainer.innerHTML = `
+                <svg class="analysis-checkmark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+            `;
+        } else if (status === 'error') {
+            iconContainer.innerHTML = `
+                <svg class="analysis-error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            `;
+        } else {
+            iconContainer.innerHTML = `<span class="analysis-step-pending w-2 h-2 rounded-full bg-surface-300 dark:bg-surface-500"></span>`;
+        }
+    }
+
+    async function finishEntry() {
+        const content = textarea.value.trim();
+        if (!content) {
+            alert('Please write some content before finishing.');
+            return;
+        }
+
+        // First, submit the form to create the entry
+        const formData = new FormData(document.getElementById('entry-form'));
+
+        try {
+            const response = await fetch('/entry/new', {
+                method: 'POST',
+                body: formData
+            });
+
+            // The response will be a redirect to /entry/<id>
+            // We need to extract the entry_id from the redirect URL
+            const redirectUrl = response.url;
+            const match = redirectUrl.match(/\/entry\/([a-f0-9-]+)/);
+
+            if (!match) {
+                // Fallback: just follow the redirect
+                window.location.href = redirectUrl;
+                return;
+            }
+
+            analysisEntryId = match[1];
+            showAnalysisModal();
+            startAnalysis(analysisEntryId);
+
+        } catch (error) {
+            alert('Failed to save entry: ' + error.message);
+        }
+    }
+
+    function startAnalysis(entryId) {
+        // Close any existing connection
+        if (analysisEventSource) {
+            analysisEventSource.close();
+        }
+
+        // Use fetch with ReadableStream for SSE (more reliable than EventSource for POST)
+        fetch('/api/analyze/entry', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ entry_id: entryId })
+        }).then(response => {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            function read() {
+                reader.read().then(({ done, value }) => {
+                    if (done) return;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // Keep incomplete line in buffer
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                handleAnalysisEvent(data);
+                            } catch (e) {
+                                // Ignore parse errors
+                            }
+                        }
+                    }
+
+                    read();
+                }).catch(err => {
+                    showAnalysisError('Connection lost. Please try again.');
+                });
+            }
+
+            read();
+        }).catch(err => {
+            showAnalysisError('Failed to start analysis: ' + err.message);
+        });
+    }
+
+    function handleAnalysisEvent(data) {
+        if (data.step === 'done') {
+            // Analysis complete — entry is saved, disable the leave-page warning
+            hasUnsavedChanges = false;
+            analysisProgressBar.style.width = '100%';
+            analysisProgressText.textContent = `Analysis complete in ${data.result.processing_time}s`;
+
+            // Update actions to show "View Entry" button
+            analysisActions.innerHTML = `
+                <a href="/entry/${analysisEntryId}" class="px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition">
+                    View Entry
+                </a>
+            `;
+
+            // Auto-redirect after a short delay
+            setTimeout(() => {
+                window.location.href = `/entry/${analysisEntryId}`;
+            }, 1500);
+
+        } else if (typeof data.step === 'number') {
+            // Update step status
+            updateStepIcon(data.step, data.status);
+
+            if (data.status === 'running') {
+                document.getElementById(`analysis-step-${data.step}-text`).textContent = data.message;
+            } else if (data.status === 'complete') {
+                document.getElementById(`analysis-step-${data.step}-text`).textContent = data.message + ' ✓';
+            } else if (data.status === 'error') {
+                document.getElementById(`analysis-step-${data.step}-text`).textContent = 'Error: ' + data.message;
+            }
+
+            // Update progress bar
+            const progress = (data.step / 4) * 100;
+            if (data.status === 'complete') {
+                analysisProgressBar.style.width = `${progress}%`;
+            } else if (data.status === 'running') {
+                analysisProgressBar.style.width = `${progress - 25}%`;
+            }
+            analysisProgressText.textContent = `Step ${data.step} of 4: ${STEP_LABELS[data.step]}`;
+        }
+    }
+
+    function showAnalysisError(message) {
+        analysisError.classList.remove('hidden');
+        analysisErrorText.textContent = message;
+        const entryId = analysisEntryId;
+        if (entryId) {
+            analysisActions.innerHTML = `
+                <button type="button" onclick="closeAnalysisModal()" class="px-4 py-2 text-sm font-medium text-surface-600 dark:text-surface-400 hover:text-surface-800 dark:hover:text-surface-200 transition">
+                    Close
+                </button>
+                <a href="/entry/${entryId}" class="px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition">
+                    View Entry Anyway
+                </a>
+            `;
+        } else {
+            analysisActions.innerHTML = `
+                <button type="button" onclick="closeAnalysisModal()" class="px-4 py-2 text-sm font-medium text-surface-600 dark:text-surface-400 hover:text-surface-800 dark:hover:text-surface-200 transition">
+                    Close
+                </button>
+            `;
+        }
+    }
+
+    function cancelAnalysis() {
+        if (analysisEventSource) {
+            analysisEventSource.close();
+            analysisEventSource = null;
+        }
+        // Entry was already saved, redirect to it
+        if (analysisEntryId) {
+            window.location.href = `/entry/${analysisEntryId}`;
+        } else {
+            closeAnalysisModal();
+        }
+    }
+    // ── Keyboard Shortcuts ──────────────────────────────────────────────
+    // Ctrl+S (or Cmd+S on Mac) to save the entry
+    // Ctrl+Enter (or Cmd+Enter on Mac) to finish entry (trigger analysis)
+    document.addEventListener('keydown', function(e) {
+        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+        const modKey = isMac ? e.metaKey : e.ctrlKey;
+
+        // Ctrl/Cmd + S: Save
+        if (modKey && e.key === 's') {
+            e.preventDefault();
+            const form = document.getElementById('entry-form');
+            if (form) {
+                form.submit();
+            }
+        }
+
+        // Ctrl/Cmd + Enter: Finish Entry (trigger analysis)
+        if (modKey && e.key === 'Enter') {
+            e.preventDefault();
+            const finishBtn = document.getElementById('finish-entry-btn');
+            if (finishBtn && typeof finishEntry === 'function') {
+                finishEntry();
+            } else {
+                // Fallback to form submit if no finish button
+                const form = document.getElementById('entry-form');
+                if (form) form.submit();
+            }
+        }
+    });
+
+    // ── Unsaved Changes Warning ─────────────────────────────────────────
+    // Track whether content has changed since last save
+    let savedContent = textarea ? textarea.value : '';
+    let hasUnsavedChanges = false;
+
+    if (textarea) {
+        textarea.addEventListener('input', function() {
+            hasUnsavedChanges = textarea.value !== savedContent;
+        });
+    }
+
+    // Mark content as saved when form is submitted
+    const entryFormForUnsaved = document.getElementById('entry-form');
+    if (entryFormForUnsaved) {
+        entryFormForUnsaved.addEventListener('submit', function() {
+            hasUnsavedChanges = false;
+            savedContent = textarea ? textarea.value : '';
+        });
+    }
+
+    // Warn before leaving with unsaved changes
+    window.addEventListener('beforeunload', function(e) {
+        if (hasUnsavedChanges && textarea && textarea.value.trim().length > 0) {
+            e.preventDefault();
+            // Modern browsers ignore custom messages, but this triggers the dialog
+            e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+            return e.returnValue;
+        }
+    });
+
+    // ── Smart Tag Suggestion System ──────────────────────────────────────────
+
+    const TagSuggester = {
+        tags: [],
+        isLoading: false,
+        debounceTimer: null,
+        lastContent: '',
+        lastSuggestions: null,
+
+        init() {
+            console.log('Smart TagSuggester.init() called');
+            // Parse existing tags from the hidden input
+            const hiddenInput = document.getElementById('tags');
+            if (hiddenInput && hiddenInput.value) {
+                this.tags = hiddenInput.value.split(',').map(t => t.trim()).filter(t => t);
+            }
+            this.renderTags();
+            this.updateTagCount();
+
+            // Set up content change listener for auto-suggestions
+            if (textarea) {
+                textarea.addEventListener('input', () => {
+                    this.onContentChange();
+                });
+            }
+        },
+
+        onContentChange() {
+            const content = textarea.value.trim();
+            console.log('TagSuggester.onContentChange called, content length:', content.length);
+
+            // Only suggest after 50 characters and when user pauses typing
+            if (content.length < 50) {
+                console.log('Content too short (<50), hiding suggestions');
+                this.hideSuggestions();
+                return;
+            }
+
+            // Don't re-suggest if content hasn't changed meaningfully
+            if (Math.abs(content.length - this.lastContent.length) < 20) {
+                console.log('Content change too small (<20 chars difference), skipping');
+                return;
+            }
+
+            // Debounce: wait 800ms after user stops typing
+            clearTimeout(this.debounceTimer);
+            console.log('Scheduling fetchSuggestions in 800ms');
+            this.debounceTimer = setTimeout(() => {
+                this.lastContent = content;
+                this.fetchSuggestions(content);
+            }, 800);
+        },
+
+        async fetchSuggestions(content) {
+            console.log('TagSuggester.fetchSuggestions called, isLoading:', this.isLoading);
+            if (this.isLoading) return;
+
+            this.isLoading = true;
+            this.showSpinner();
+
+            try {
+                console.log('Fetching /api/suggest-tags...');
+                const response = await fetch('/api/suggest-tags', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content: content,
+                        existing_tags: this.tags,
+                        max_existing: 5,
+                        max_new: 2
+                    })
+                });
+
+                console.log('Response status:', response.status, response.ok);
+
+                if (!response.ok) {
+                    let errorMsg = `Server error (${response.status})`;
+                    try {
+                        const errData = await response.json();
+                        console.log('Error response data:', errData);
+                        if (errData.fallback) {
+                            this.renderSmartSuggestions({ existing: errData.existing || [], new: errData.new || [] });
+                            if (errData.message) {
+                                this.showMessage(errData.message, 'info');
+                            }
+                            return;
+                        }
+                        errorMsg = errData.error || errData.message || errorMsg;
+                    } catch (_) {}
+                    console.error('Tag suggestion failed:', errorMsg);
+                    this.showMessage(errorMsg, 'error');
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('Tag suggestions received:', data);
+                this.lastSuggestions = data;
+
+                // Check if we got any suggestions
+                const hasExisting = (data.existing || []).length > 0;
+                const hasNew = (data.new || []).length > 0;
+
+                if (!hasExisting && !hasNew) {
+                    console.log('No suggestions returned from API');
+                    this.showMessage('Keine Tag-Vorschläge verfügbar. Überprüfe, ob Ollama läuft.', 'warning');
+                }
+
+                this.renderSmartSuggestions(data);
+                this.renderBaustellenConnections(data.baustellen_matches || []);
+            } catch (err) {
+                console.error('Tag suggestion error:', err);
+                this.showMessage('Tag-Vorschläge konnten nicht geladen werden', 'error');
+            } finally {
+                this.isLoading = false;
+                this.hideSpinner();
+            }
+        },
+
+        refreshSuggestions() {
+            const content = textarea.value.trim();
+            if (content.length >= 50) {
+                this.lastContent = ''; // Force refresh
+                this.fetchSuggestions(content);
+            } else {
+                this.showMessage('Schreibe mindestens 50 Zeichen für Tag-Vorschläge', 'warning');
+            }
+        },
+
+        renderSmartSuggestions(data) {
+            console.log('TagSuggester.renderSmartSuggestions called with:', data);
+            const panel = document.getElementById('tag-suggestions-panel');
+            const existingList = document.getElementById('tag-suggestions-existing');
+            const newList = document.getElementById('tag-suggestions-new');
+
+            console.log('Elements found - panel:', !!panel, 'existingList:', !!existingList, 'newList:', !!newList);
+            if (!panel || !existingList || !newList) return;
+
+            // Filter out already-added tags
+            const existing = (data.existing || []).filter(s => !this.tags.includes(s.tag));
+            const newTags = (data.new || []).filter(s => !this.tags.includes(s.tag));
+
+            // Render existing tag suggestions
+            if (existing.length > 0) {
+                existingList.innerHTML = existing.map(s => `
+                    <button type="button" onclick="TagSuggester.addTag('${escapeHtml(s.tag)}', 'existing')"
+                            title="${escapeHtml(s.reason)}"
+                            class="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium bg-surface-200 dark:bg-surface-600 text-surface-700 dark:text-surface-200 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-700 dark:hover:text-primary-300 transition border border-transparent hover:border-primary-300 dark:hover:border-primary-600">
+                        <span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>
+                        ${escapeHtml(s.tag)}
+                        <span class="text-[10px] opacity-60 group-hover:opacity-100">${Math.round(s.score * 100)}%</span>
+                    </button>
+                `).join('');
+            } else {
+                existingList.innerHTML = '<span class="text-xs text-surface-400 italic">Keine passenden bekannten Tags gefunden</span>';
+            }
+
+            // Render new tag suggestions
+            if (newTags.length > 0) {
+                newList.innerHTML = newTags.map(s => `
+                    <button type="button" onclick="TagSuggester.addTag('${escapeHtml(s.tag)}', 'new')"
+                            title="${escapeHtml(s.reason)}"
+                            class="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 transition border border-transparent hover:border-blue-400">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        ${escapeHtml(s.tag)}
+                        <span class="text-[10px] opacity-60">Neu</span>
+                    </button>
+                `).join('');
+            } else {
+                newList.innerHTML = '<span class="text-xs text-surface-400 italic">Keine neuen Tag-Ideen</span>';
+            }
+
+            panel.classList.remove('hidden');
+            console.log('Suggestions panel shown');
+        },
+
+        renderBaustellenConnections(baustellen) {
+            const panel = document.getElementById('baustellen-connections-panel');
+            const list = document.getElementById('baustellen-connections-list');
+
+            if (!panel || !list) return;
+
+            if (baustellen.length === 0) {
+                panel.classList.add('hidden');
+                return;
+            }
+
+            const statusColors = {
+                'escalating': 'bg-red-100 text-red-700 border-red-300',
+                'stable': 'bg-yellow-100 text-yellow-700 border-yellow-300',
+                'improving': 'bg-green-100 text-green-700 border-green-300',
+                'dormant': 'bg-slate-100 text-slate-700 border-slate-300'
+            };
+
+            list.innerHTML = baustellen.map(b => `
+                <a href="#" onclick="event.preventDefault(); TagSuggester.showBaustelleDetails(${b.id})"
+                   class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border ${statusColors[b.status] || statusColors['stable']} hover:opacity-80 transition">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    ${escapeHtml(b.headline)}
+                    ${b.match_count > 1 ? `<span class="text-[10px] opacity-70">(${b.match_count} Tags)</span>` : ''}
+                </a>
+            `).join('');
+
+            panel.classList.remove('hidden');
+        },
+
+        showBaustelleDetails(baustelleId) {
+            // Could open a modal with Baustelle details
+            // For now, just log it - could be enhanced
+            console.log('Show Baustelle details:', baustelleId);
+        },
+
+        renderTags() {
+            const container = document.getElementById('tag-chips-container');
+            if (!container) return;
+
+            if (this.tags.length === 0) {
+                container.innerHTML = '<span class="text-sm text-surface-400 italic">Noch keine Tags. Füge Tags hinzu, um Einträge zu verknüpfen und Baustellen zu identifizieren.</span>';
+            } else {
+                container.innerHTML = this.tags.map(tag => `
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-700">
+                        ${escapeHtml(tag)}
+                        <button type="button" onclick="TagSuggester.removeTag('${escapeHtml(tag)}')" 
+                                class="hover:text-primary-900 dark:hover:text-primary-100 focus:outline-none"
+                                aria-label="Remove tag ${escapeHtml(tag)}">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </span>
+                `).join('');
+            }
+
+            // Update hidden input
+            const hiddenInput = document.getElementById('tags');
+            if (hiddenInput) {
+                hiddenInput.value = this.tags.join(', ');
+            }
+
+            this.updateTagCount();
+        },
+
+        updateTagCount() {
+            const badge = document.getElementById('tag-count-badge');
+            if (badge) {
+                if (this.tags.length > 0) {
+                    badge.textContent = this.tags.length;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+        },
+
+        addTag(tag, source = 'manual') {
+            if (!tag || this.tags.includes(tag)) return;
+            
+            tag = tag.toLowerCase().trim().replace(/\s+/g, '-');
+            if (!tag || this.tags.includes(tag)) return;
+
+            // Add with animation
+            this.tags.push(tag);
+            this.renderTags();
+            
+            // Remove from suggestions
+            this.removeSuggestionWithAnimation(tag);
+            
+            // Refresh suggestions to get new ones if we got most of them
+            const remainingSuggestions = document.querySelectorAll('#tag-suggestions-existing button, #tag-suggestions-new button');
+            if (remainingSuggestions.length <= 2) {
+                setTimeout(() => this.onContentChange(), 500);
+            }
+        },
+
+        removeSuggestionWithAnimation(tag) {
+            const existingList = document.getElementById('tag-suggestions-existing');
+            const newList = document.getElementById('tag-suggestions-new');
+            
+            [existingList, newList].forEach(list => {
+                if (!list) return;
+                const buttons = list.querySelectorAll('button');
+                buttons.forEach(btn => {
+                    const btnTag = btn.textContent.trim().toLowerCase().replace(/\s+/g, '-');
+                    if (btnTag === tag.toLowerCase()) {
+                        btn.classList.add('tag-leaving');
+                        setTimeout(() => btn.remove(), 300);
+                    }
+                });
+            });
+        },
+
+        removeTag(tag) {
+            this.tags = this.tags.filter(t => t !== tag);
+            this.renderTags();
+        },
+
+        addTagFromInput() {
+            const input = document.getElementById('tag-input');
+            if (!input) return;
+            
+            const value = input.value.trim();
+            if (value) {
+                const newTags = value.split(',').map(t => t.trim()).filter(t => t);
+                newTags.forEach(tag => this.addTag(tag, 'manual'));
+                input.value = '';
+            }
+        },
+
+        handleInputKeydown(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                this.addTagFromInput();
+            }
+        },
+
+        hideSuggestions() {
+            const panel = document.getElementById('tag-suggestions-panel');
+            if (panel) panel.classList.add('hidden');
+        },
+
+        showSpinner() {
+            const spinner = document.getElementById('tag-suggest-spinner');
+            if (spinner) spinner.classList.remove('hidden');
+        },
+
+        hideSpinner() {
+            const spinner = document.getElementById('tag-suggest-spinner');
+            if (spinner) spinner.classList.add('hidden');
+        },
+
+        showMessage(message, type = 'info') {
+            const msgEl = document.getElementById('tag-message');
+            if (!msgEl) return;
+
+            const colors = {
+                info: 'text-blue-600 dark:text-blue-400',
+                warning: 'text-amber-600 dark:text-amber-400',
+                error: 'text-red-600 dark:text-red-400'
+            };
+
+            msgEl.textContent = message;
+            msgEl.className = `px-4 py-2 border-t border-surface-100 dark:border-surface-700 text-xs ${colors[type] || colors.info}`;
+            msgEl.classList.remove('hidden');
+
+            setTimeout(() => {
+                msgEl.classList.add('hidden');
+            }, 5000);
+        }
+    };
+
+    // ── Voice Recording ─────────────────────────────────────────────────
+    let voiceRecorder = null;
+    let voiceChunks = [];
+    let voiceTimerInterval = null;
+    let voiceSeconds = 0;
+
+    const voiceBtn = document.getElementById('voice-record-btn');
+    const voiceLabel = document.getElementById('voice-record-label');
+    const voiceDot = document.getElementById('voice-recording-dot');
+    const voiceMicIcon = document.getElementById('voice-mic-icon');
+    const voiceTimerBtn = document.getElementById('voice-record-timer');
+
+    function voiceShowState(state) {
+        document.getElementById('voice-recording-state').classList.toggle('hidden', state !== 'recording');
+        document.getElementById('voice-transcribing-state').classList.toggle('hidden', state !== 'transcribing');
+        document.getElementById('voice-preview-state').classList.toggle('hidden', state !== 'preview');
+        document.getElementById('voice-error-state').classList.toggle('hidden', state !== 'error');
+    }
+
+    function voiceFormatTime(s) {
+        return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    }
+
+    async function voiceToggleRecording() {
+        if (voiceRecorder && voiceRecorder.state === 'recording') {
+            voiceRecorder.stop();
+            return;
+        }
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            voiceChunks = [];
+            voiceRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '' });
+
+            voiceRecorder.ondataavailable = e => { if (e.data.size > 0) voiceChunks.push(e.data); };
+
+            voiceRecorder.onstop = () => {
+                stream.getTracks().forEach(t => t.stop());
+                clearInterval(voiceTimerInterval);
+                // Reset button
+                voiceBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                voiceBtn.classList.add('bg-primary-600', 'hover:bg-primary-700');
+                voiceDot.classList.add('hidden');
+                voiceMicIcon.classList.remove('hidden');
+                voiceLabel.textContent = 'Record';
+                voiceTimerBtn.classList.add('hidden');
+                voiceShowState('');
+
+                if (voiceChunks.length) voiceSend(new Blob(voiceChunks, { type: voiceRecorder.mimeType }));
+            };
+
+            voiceRecorder.start();
+
+            // Update button to recording state
+            voiceBtn.classList.remove('bg-primary-600', 'hover:bg-primary-700');
+            voiceBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+            voiceMicIcon.classList.add('hidden');
+            voiceDot.classList.remove('hidden');
+            voiceLabel.textContent = 'Stop';
+            voiceSeconds = 0;
+            voiceTimerBtn.classList.remove('hidden');
+            voiceTimerBtn.textContent = '0:00';
+            voiceTimerInterval = setInterval(() => {
+                voiceSeconds++;
+                voiceTimerBtn.textContent = voiceFormatTime(voiceSeconds);
+                document.getElementById('voice-timer').textContent = voiceFormatTime(voiceSeconds);
+            }, 1000);
+        } catch (err) {
+            document.getElementById('voice-error-message').textContent = 'Microphone access denied. Please allow microphone permissions.';
+            voiceShowState('error');
+        }
+    }
+
+    async function voiceSend(blob) {
+        voiceShowState('transcribing');
+        const form = new FormData();
+        form.append('audio', blob, 'recording.webm');
+        try {
+            const resp = await fetch('/api/transcribe', { method: 'POST', body: form });
+            const data = await resp.json();
+            if (!resp.ok || data.error) {
+                document.getElementById('voice-error-message').textContent = data.error || 'Transcription failed.';
+                voiceShowState('error');
+                return;
+            }
+            document.getElementById('voice-preview-text').value = data.text || '';
+            document.getElementById('voice-detected-lang').textContent = data.language || '—';
+            const conf = data.confidence != null ? Math.round(data.confidence * 100) + '%' : '—';
+            document.getElementById('voice-confidence').textContent = conf;
+            voiceShowState('preview');
+        } catch (err) {
+            document.getElementById('voice-error-message').textContent = 'Could not reach the server.';
+            voiceShowState('error');
+        }
+    }
+
+    function voiceInsertAtCursor() {
+        const text = document.getElementById('voice-preview-text').value;
+        if (!text) return;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const before = textarea.value.substring(0, start);
+        const after = textarea.value.substring(end);
+        const spaceBefore = before.length && !before.endsWith(' ') && !before.endsWith('\n') ? ' ' : '';
+        textarea.value = before + spaceBefore + text + after;
+        const pos = before.length + spaceBefore.length + text.length;
+        textarea.selectionStart = textarea.selectionEnd = pos;
+        textarea.focus();
+        updateWordCount();
+        voiceShowState('');
+    }
+
+    function voiceReplaceAll() {
+        const text = document.getElementById('voice-preview-text').value;
+        if (!text) return;
+        textarea.value = text;
+        textarea.focus();
+        updateWordCount();
+        voiceShowState('');
+    }
+
+    function voiceDismissPreview() {
+        voiceShowState('');
+    }
+
+    function voiceRetry() {
+        voiceShowState('');
+        voiceToggleRecording();
+    }
+
+    // Initialize TagSuggester
+    TagSuggester.init();
+
+    // Expose globally for onclick handlers
+    window.TagSuggester = TagSuggester;
+</script>
+{% endblock %}

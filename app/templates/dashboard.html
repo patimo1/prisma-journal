@@ -1,0 +1,1084 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<style>
+    .topic-card { perspective: 1200px; }
+    .topic-card-inner {
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+    }
+    .topic-card:hover .topic-card-inner,
+    .topic-card.is-flipped .topic-card-inner {
+        transform: rotateY(180deg);
+    }
+    .topic-face {
+        backface-visibility: hidden;
+    }
+    .topic-back {
+        transform: rotateY(180deg);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-10">
+
+    <!-- Hero: New Entry -->
+    <div class="text-center pt-4 pb-2">
+        <p class="text-surface-500 dark:text-surface-400 mb-8">Was bewegt dich heute?</p>
+
+        <div class="flex items-center justify-center">
+            <a href="/entry/new"
+               class="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold text-base px-8 py-3.5 rounded-xl shadow-lg shadow-primary-600/20 hover:shadow-primary-600/30 transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Neuer Eintrag
+            </a>
+        </div>
+    </div>
+
+    <!-- Daily Reflection Card -->
+    <div id="daily-reflection-card" class="card-fade-in card-fade-in-delay-1 relative bg-white dark:bg-surface-800 rounded-2xl p-8 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]">
+        
+        <div class="flex items-start gap-4 mb-6">
+            <div class="flex-shrink-0 w-10 h-10 bg-surface-100 dark:bg-surface-700 rounded-full flex items-center justify-center">
+                <svg class="w-5 h-5 text-surface-600 dark:text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div class="flex-1 min-w-0 pt-1">
+                <h3 class="text-base font-medium text-surface-900 dark:text-white">Tägliche Reflexion</h3>
+                <p class="text-sm text-surface-500 dark:text-surface-400 mt-0.5">Eine personalisierte Frage für heute</p>
+            </div>
+        </div>
+
+        <!-- Question display -->
+        <div id="daily-question-content" class="mb-5">
+            <div id="daily-question-loading" class="flex items-center gap-2 text-sm text-surface-500 dark:text-surface-400">
+                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Frage wird geladen...
+            </div>
+            <p id="daily-question-text" class="hidden text-lg font-medium text-surface-800 dark:text-surface-100 leading-relaxed"></p>
+            <p id="daily-question-message" class="hidden text-xs text-surface-400 dark:text-surface-500 mt-2 italic"></p>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex flex-wrap items-center gap-3 mb-6">
+            <a id="daily-question-write-btn" href="/entry/new"
+               class="inline-flex items-center gap-2 bg-surface-900 hover:bg-black dark:bg-white dark:text-surface-900 dark:hover:bg-surface-200 text-white font-medium text-sm px-6 py-3 rounded-xl shadow-sm hover:shadow-md transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                </svg>
+                Darüber schreiben
+            </a>
+            <button id="daily-question-refresh-btn"
+                    class="inline-flex items-center gap-1.5 text-sm font-medium text-surface-600 dark:text-surface-400 hover:text-surface-900 dark:hover:text-surface-200 px-3 py-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors">
+                <svg id="refresh-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                <svg id="refresh-spinner" class="w-4 h-4 animate-spin hidden" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Neue Frage
+            </button>
+        </div>
+
+        <!-- Explore More Accordion -->
+        <div id="explore-more-section" class="border-t border-surface-200 dark:border-surface-700 pt-5">
+            <!-- Toggle Header -->
+            <button id="explore-more-toggle" class="flex items-center gap-2 text-sm text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200 transition-colors group">
+                <span class="text-xs tracking-wide uppercase">oder tiefer eintauchen</span>
+                <svg id="explore-chevron" class="w-4 h-4 transition-transform duration-300 group-hover:translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+
+            <!-- Collapsible Content -->
+            <div id="explore-more-content" class="hidden mt-5">
+                <!-- Loading State -->
+                <div id="explore-more-loading" class="flex items-center gap-2 text-sm text-surface-500 dark:text-surface-400 py-4">
+                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Personalisierte Themen werden geladen...</span>
+                </div>
+
+                <!-- Prompts Container -->
+                <div id="explore-prompts-container" class="space-y-3 hidden">
+                    <!-- Prompt cards will be inserted here -->
+                </div>
+
+                <!-- Empty/Error State -->
+                <div id="explore-more-empty" class="hidden text-sm text-surface-500 dark:text-surface-400 py-4">
+                    <p>Schreibe mindestens 3 Einträge, um personalisierte Vorschläge zu erhalten. Du hast momentan <span id="current-entry-count">0</span> Einträge.</p>
+                </div>
+
+                <!-- Refresh Button -->
+                <div id="explore-more-actions" class="hidden mt-4 pt-3 border-t border-surface-100 dark:border-surface-700">
+                    <button id="explore-refresh-btn" class="inline-flex items-center gap-1.5 text-xs font-medium text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-200 transition-colors">
+                        <svg id="explore-refresh-icon" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <svg id="explore-refresh-spinner" class="w-3 h-3 animate-spin hidden" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Neue Themen laden
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Suggestions (formerly Recurring Topics) -->
+    <div class="card-fade-in card-fade-in-delay-2 space-y-6">
+        <div class="flex items-center justify-between px-1">
+            <h3 class="text-lg font-medium text-surface-900 dark:text-white">Suggestions</h3>
+             <div class="text-xs text-surface-500 font-medium cursor-pointer hover:text-surface-700 flex items-center gap-1">
+                Last week
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </div>
+        </div>
+        <div id="recurring-topics" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+
+    <!-- Grid: Calendar & Emotion Bubbles -->
+    <div class="card-fade-in card-fade-in-delay-3 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Calendar Card -->
+        <div class="card-fade-in card-fade-in-delay-4 bg-white dark:bg-surface-800 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-base font-medium text-surface-900 dark:text-white">Calendar</h3>
+                <div class="flex items-center gap-2">
+                    <button id="cal-prev" class="p-1 rounded hover:bg-surface-100 dark:hover:bg-surface-700 text-surface-500 dark:text-surface-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <span id="cal-month-label" class="text-sm font-medium text-surface-700 dark:text-surface-300 min-w-[120px] text-center"></span>
+                    <button id="cal-next" class="p-1 rounded hover:bg-surface-100 dark:hover:bg-surface-700 text-surface-500 dark:text-surface-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-surface-400 dark:text-surface-500 mb-2">
+                <div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div><div>S</div>
+            </div>
+            <div id="cal-grid" class="grid grid-cols-7 gap-1"></div>
+        </div>
+
+        <!-- Emotional State Bubble Chart -->
+        <div class="card-fade-in card-fade-in-delay-5 bg-white dark:bg-surface-800 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] p-6">
+            <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+                <div>
+                    <h3 class="text-base font-medium text-surface-900 dark:text-white">Emotional State</h3>
+                    <p class="text-xs text-surface-400">Packed bubbles by intensity</p>
+                </div>
+            </div>
+            <svg id="emotionBubbles" viewBox="0 0 560 240" class="w-full h-56"></svg>
+        </div>
+    </div>
+
+    <!-- Curated Baustellen (Ongoing Concerns) -->
+    <div class="card-fade-in card-fade-in-delay-6 bg-white dark:bg-surface-800 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+            <div>
+                <h3 class="text-base font-medium text-surface-900 dark:text-white">Deine Baustellen</h3>
+                <p class="text-xs text-surface-400">Aktive Themen & ungelöste Anliegen</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="BaustellenManager.showCreateModal()" 
+                        class="text-xs px-2 py-1 rounded bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 hover:bg-primary-200 transition">
+                    + Neue Baustelle
+                </button>
+                <button onclick="BaustellenManager.analyze()" 
+                        class="text-xs px-2 py-1 rounded bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 hover:bg-surface-300 transition">
+                    Analysieren
+                </button>
+            </div>
+        </div>
+        
+        <!-- Tabs for filtering -->
+        <div class="flex gap-1 mb-4 border-b border-surface-200 dark:border-surface-700 pb-2">
+            <button onclick="BaustellenManager.setFilter('active')" 
+                    id="baustellen-tab-active"
+                    class="text-xs px-3 py-1 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium transition">
+                Aktiv
+            </button>
+            <button onclick="BaustellenManager.setFilter('pinned')" 
+                    id="baustellen-tab-pinned"
+                    class="text-xs px-3 py-1 rounded-full text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700 transition">
+                Gepinnt
+            </button>
+            <button onclick="BaustellenManager.setFilter('closed')" 
+                    id="baustellen-tab-closed"
+                    class="text-xs px-3 py-1 rounded-full text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700 transition">
+                Archiv
+            </button>
+            <button onclick="BaustellenManager.setFilter('all')" 
+                    id="baustellen-tab-all"
+                    class="text-xs px-3 py-1 rounded-full text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700 transition">
+                Alle
+            </button>
+        </div>
+        
+        <div id="baustellen-content" class="space-y-3 min-h-[100px]">
+            <div class="text-xs text-surface-400 text-center py-8">Baustellen werden geladen...</div>
+        </div>
+    </div>
+
+    <!-- Big Five Personality -->
+    <div class="card-fade-in card-fade-in-delay-6 bg-white dark:bg-surface-800 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3 mb-6">
+            <div>
+                <h3 class="text-base font-medium text-surface-900 dark:text-white">Deine Persönlichkeit</h3>
+                <p class="text-xs text-surface-400">Basierend auf deinen Tagebucheinträgen</p>
+            </div>
+            <select id="big-five-range" class="text-xs bg-transparent border-none text-surface-500 focus:ring-0 cursor-pointer">
+                <option value="7">Letzte Woche</option>
+                <option value="30" selected>Letzter Monat</option>
+                <option value="90">Letztes Quartal</option>
+                <option value="all">Gesamt</option>
+            </select>
+        </div>
+        <div id="big-five-content" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4"></div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // ── Emotion colors ─────────────────────────────────────────────
+    const emotionColors = {
+        joy: '#e4e4e7',        // Zinc 200
+        trust: '#d4d4d8',      // Zinc 300
+        fear: '#52525b',       // Zinc 600
+        surprise: '#f4f4f5',   // Zinc 100
+        sadness: '#71717a',    // Zinc 500
+        disgust: '#3f3f46',    // Zinc 700
+        anger: '#18181b',      // Zinc 900
+        anticipation: '#a1a1aa', // Zinc 400
+    };
+
+    // ── Emotional State Bubble Chart ─────────────────────────────────
+    function renderEmotionBubbles(data) {
+        const svg = document.getElementById('emotionBubbles');
+        if (!svg || typeof d3 === 'undefined') return;
+        const width = 560;
+        const height = 240;
+        const entries = Object.entries(data.wheel || {}).map(([emotion, stats]) => {
+            const count = stats.count || 0;
+            const freq = stats.avg_frequency || 0.4;
+            return {
+                name: emotion,
+                value: Math.max(1, count * (freq + 0.2))
+            };
+        });
+        const root = d3.hierarchy({ children: entries }).sum(d => d.value);
+        const pack = d3.pack().size([width, height]).padding(6);
+        pack(root);
+
+        const selection = d3.select(svg);
+        selection.selectAll('*').remove();
+        selection.attr('viewBox', `0 0 ${width} ${height}`);
+
+        const nodes = selection.append('g').selectAll('g')
+            .data(root.leaves())
+            .enter()
+            .append('g')
+            .attr('transform', d => `translate(${d.x},${d.y})`);
+
+        nodes.append('circle')
+            .attr('r', d => d.r)
+            .attr('fill', d => emotionColors[d.data.name] || '#94a3b8')
+            .attr('fill-opacity', 0.15)
+            .attr('stroke', d => emotionColors[d.data.name] || '#94a3b8')
+            .attr('stroke-width', 1.2)
+            .on('click', (_, d) => {
+                window.location.href = `/journal?emotions=${encodeURIComponent(d.data.name)}`;
+            });
+
+        nodes.append('text')
+            .text(d => d.data.name)
+            .attr('text-anchor', 'middle')
+            .attr('dy', 4)
+            .attr('fill', '#111827')
+            .style('font-size', d => Math.max(10, Math.min(14, d.r / 2.4)))
+            .style('font-family', 'Inter, sans-serif');
+    }
+
+    async function loadEmotionBubbles() {
+        try {
+            const resp = await fetch('/api/insights/emotions?range=90d');
+            const data = await resp.json();
+            renderEmotionBubbles(data);
+        } catch (error) {
+            console.error('Failed to load emotion bubbles', error);
+        }
+    }
+
+    // ── Big Five personality ─────────────────────────────────────────
+    const bigFiveRange = document.getElementById('big-five-range');
+    const bigFiveContent = document.getElementById('big-five-content');
+
+    function renderBigFive(data) {
+        if (!bigFiveContent) return;
+        const items = [
+            ['Offenheit', data.openness],
+            ['Gewissenhaftigkeit', data.conscientiousness],
+            ['Extraversion', data.extraversion],
+            ['Verträglichkeit', data.agreeableness],
+            ['Neurotizismus', data.neuroticism],
+        ];
+        bigFiveContent.innerHTML = items.map(([label, detail]) => {
+            const summary = detail?.summary || 'Noch keine Einsichten.';
+            return `
+                <div class="bg-surface-50 dark:bg-surface-700/50 rounded-xl p-4 h-full flex flex-col">
+                    <div class="text-xs font-semibold text-surface-800 dark:text-surface-200 uppercase tracking-wide mb-2">${label}</div>
+                    <div class="text-xs text-surface-600 dark:text-surface-300 leading-relaxed flex-1">${summary}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function loadBigFive() {
+        if (!bigFiveContent) return;
+        const rangeVal = bigFiveRange ? bigFiveRange.value : '30';
+        bigFiveContent.innerHTML = '<div class="text-xs text-surface-400 col-span-full text-center py-4">Persönlichkeitsmuster werden analysiert...</div>';
+        if (window.AILoader) AILoader.show('Analysiere Persönlichkeit...');
+        try {
+            const resp = await fetch(`/api/insights/big-five?range=${rangeVal}`);
+            const data = await resp.json();
+            if (data.error) {
+                bigFiveContent.innerHTML = `<div class="text-xs text-surface-400 col-span-full">${data.error}</div>`;
+                return;
+            }
+            renderBigFive(data);
+        } catch (e) {
+            bigFiveContent.innerHTML = '<div class="text-xs text-surface-400 col-span-full">Persönlichkeits-Insights nicht verfügbar.</div>';
+        } finally {
+            if (window.AILoader) AILoader.hide();
+        }
+    }
+
+    if (bigFiveRange) {
+        bigFiveRange.addEventListener('change', loadBigFive);
+    }
+
+    // ── Curated Baustellen Management ────────────────────────────────
+    const BaustellenManager = {
+        baustellen: [],
+        currentFilter: 'active',
+        isLoading: false,
+
+        async load() {
+            const container = document.getElementById('baustellen-content');
+            if (!container) return;
+
+            if (this.isLoading) return;
+            this.isLoading = true;
+
+            container.innerHTML = '<div class="text-xs text-surface-400 text-center py-8">Baustellen werden geladen...</div>';
+
+            try {
+                const resp = await fetch('/api/baustellen');
+                const data = await resp.json();
+                
+                this.baustellen = data.baustellen || [];
+                this.render();
+            } catch (e) {
+                console.error('Failed to load Baustellen:', e);
+                container.innerHTML = '<div class="text-xs text-surface-400 text-center py-4">Fehler beim Laden.</div>';
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        setFilter(filter) {
+            this.currentFilter = filter;
+            
+            // Update tab styles
+            ['active', 'pinned', 'closed', 'all'].forEach(f => {
+                const tab = document.getElementById(`baustellen-tab-${f}`);
+                if (tab) {
+                    if (f === filter) {
+                        tab.className = 'text-xs px-3 py-1 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium transition';
+                    } else {
+                        tab.className = 'text-xs px-3 py-1 rounded-full text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700 transition';
+                    }
+                }
+            });
+            
+            this.render();
+        },
+
+        render() {
+            const container = document.getElementById('baustellen-content');
+            if (!container) return;
+
+            let filtered = this.baustellen;
+            
+            if (this.currentFilter === 'active') {
+                filtered = this.baustellen.filter(b => b.status !== 'closed' && b.status !== 'dormant');
+            } else if (this.currentFilter === 'pinned') {
+                filtered = this.baustellen.filter(b => b.is_pinned);
+            } else if (this.currentFilter === 'closed') {
+                filtered = this.baustellen.filter(b => b.status === 'closed');
+            }
+
+            if (filtered.length === 0) {
+                let msg = 'Keine Baustellen in dieser Kategorie.';
+                if (this.currentFilter === 'active') msg = 'Keine aktiven Baustellen. Klicke "Analysieren" um neue zu finden.';
+                if (this.currentFilter === 'closed') msg = 'Keine archivierten Baustellen.';
+                
+                container.innerHTML = `
+                    <div class="text-xs text-surface-400 text-center py-8">
+                        ${msg}
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(b => this.renderBaustelle(b)).join('');
+        },
+
+        renderBaustelle(b) {
+            const urgencyColors = {
+                5: 'bg-red-500',
+                4: 'bg-orange-500', 
+                3: 'bg-yellow-500',
+                2: 'bg-blue-400',
+                1: 'bg-green-400'
+            };
+            
+            const statusLabels = {
+                'escalating': '↗ Eskalierend',
+                'stable': '→ Stabil',
+                'improving': '↘ Bessernd',
+                'dormant': '○ Schlafend',
+                'closed': '✓ Abgeschlossen'
+            };
+
+            const isClosed = b.status === 'closed';
+
+            const pinIcon = b.is_pinned ? 
+                '<svg class="w-3.5 h-3.5 text-primary-500" fill="currentColor" viewBox="0 0 24 24"><path d="M16 12V4H17V2H7V4H8V12L6 14V16H11V22H13V16H18V14L16 12Z"/></svg>' :
+                '<svg class="w-3.5 h-3.5 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5Z"/></svg>';
+            
+            const checkIcon = '<svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+            const reopenIcon = '<svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>';
+            const trashIcon = '<svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>';
+
+            let actions = '';
+            
+            if (!isClosed) {
+                actions += `
+                    <button onclick="BaustellenManager.togglePin(${b.id}, ${!b.is_pinned})" 
+                            class="p-1 rounded hover:bg-surface-200 transition" title="${b.is_pinned ? 'Lösen' : 'Anpinnen'}">
+                        ${pinIcon}
+                    </button>
+                `;
+            }
+
+            actions += `
+                <button onclick="BaustellenManager.showEditModal(${b.id})" 
+                        class="p-1 rounded hover:bg-surface-200 transition" title="Bearbeiten">
+                    <svg class="w-3.5 h-3.5 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                    </svg>
+                </button>
+            `;
+
+            if (isClosed) {
+                 actions += `
+                    <button onclick="BaustellenManager.update(${b.id}, {status: 'stable'})" 
+                            class="p-1 rounded hover:bg-surface-200 transition" title="Wiedereröffnen">
+                        ${reopenIcon}
+                    </button>
+                `;
+            } else {
+                 actions += `
+                    <button onclick="BaustellenManager.update(${b.id}, {status: 'closed'})" 
+                            class="p-1 rounded hover:bg-surface-200 transition" title="Abschließen (Archivieren)">
+                        ${checkIcon}
+                    </button>
+                `;
+            }
+
+            actions += `
+                <button onclick="if(confirm('Baustelle wirklich unwiderruflich löschen?')) BaustellenManager.delete(${b.id})" 
+                        class="p-1 rounded hover:bg-surface-200 transition" title="Löschen">
+                    ${trashIcon}
+                </button>
+            `;
+
+            return `
+                <div class="baustelle-item group" data-id="${b.id}">
+                    <div class="flex items-start gap-3 p-3 rounded-xl bg-surface-50 dark:bg-surface-700/50 hover:bg-surface-100 dark:hover:bg-surface-700 transition">
+                        <div class="flex-shrink-0 w-1 self-stretch rounded-full ${urgencyColors[b.urgency] || 'bg-surface-400'}"></div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                                <h4 class="text-sm font-medium text-surface-900 dark:text-white">${b.headline}</h4>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-surface-200 dark:bg-surface-600 text-surface-600 dark:text-surface-300">
+                                    ${statusLabels[b.status] || b.status}
+                                </span>
+                                ${b.tags && b.tags.length ? `<span class="text-[10px] text-surface-400">• ${b.tags.slice(0, 3).join(', ')}</span>` : ''}
+                            </div>
+                            <p class="text-xs text-surface-500 dark:text-surface-400 line-clamp-1">${b.core_problem || 'Keine Beschreibung'}</p>
+                            <div class="mt-1 flex items-center gap-2 text-[10px] text-surface-400">
+                                <span>${b.entry_count} Einträge</span>
+                                ${b.is_auto_generated ? '<span>• Auto</span>' : '<span>• Manuell</span>'}
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            ${actions}
+                        </div>
+                    </div>
+                </div>
+            `;
+        },
+
+        async togglePin(id, pin) {
+            try {
+                const resp = await fetch(`/api/baustellen/${id}/pin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pinned: pin })
+                });
+                if (resp.ok) {
+                    this.load();
+                }
+            } catch (e) {
+                console.error('Failed to pin Baustelle:', e);
+            }
+        },
+
+        async analyze() {
+            const container = document.getElementById('baustellen-content');
+            container.innerHTML = '<div class="text-xs text-surface-400 text-center py-8">Analysiere Einträge...</div>';
+            
+            try {
+                const resp = await fetch('/api/baustellen/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ auto_create: true })
+                });
+                const data = await resp.json();
+                
+                if (data.error) {
+                    container.innerHTML = `<div class="text-xs text-surface-400 text-center py-4">${data.error}</div>`;
+                    return;
+                }
+
+                if (data.cached) {
+                    // Show a message but proceed to load
+                    alert(data.message || 'Keine neuen Einträge seit der letzten Analyse.');
+                }
+                
+                // Reload to show updated list
+                this.load();
+            } catch (e) {
+                console.error('Failed to analyze Baustellen:', e);
+                container.innerHTML = '<div class="text-xs text-surface-400 text-center py-4">Analyse fehlgeschlagen.</div>';
+            }
+        },
+
+        async delete(id) {
+            try {
+                const resp = await fetch(`/api/baustellen/${id}`, {
+                    method: 'DELETE'
+                });
+                if (resp.ok) {
+                    this.load();
+                }
+            } catch (e) {
+                console.error('Failed to delete Baustelle:', e);
+            }
+        },
+
+        showCreateModal() {
+            // Simple prompt for now - could be enhanced to a modal
+            const headline = prompt('Name der neuen Baustelle:');
+            if (!headline) return;
+            
+            this.create(headline);
+        },
+
+        async create(headline) {
+            try {
+                const resp = await fetch('/api/baustellen', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        headline,
+                        status: 'stable',
+                        urgency: 3
+                    })
+                });
+                
+                if (resp.ok) {
+                    this.load();
+                }
+            } catch (e) {
+                console.error('Failed to create Baustelle:', e);
+            }
+        },
+
+        showEditModal(id) {
+            const b = this.baustellen.find(x => x.id === id);
+            if (!b) return;
+            
+            const newStatus = prompt(`Status für "${b.headline}":\n\nOptionen: escalating, stable, improving, dormant, closed\n\nAktuell: ${b.status}`, b.status);
+            if (newStatus && newStatus !== b.status) {
+                this.update(id, { status: newStatus });
+            }
+        },
+
+        async update(id, updates) {
+            try {
+                const resp = await fetch(`/api/baustellen/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updates)
+                });
+                
+                if (resp.ok) {
+                    this.load();
+                }
+            } catch (e) {
+                console.error('Failed to update Baustelle:', e);
+            }
+        }
+    };
+
+    // Initialize on load
+    BaustellenManager.load();
+
+    // ── Recurring topics ─────────────────────────────────────────────
+    const recurringTopics = document.getElementById('recurring-topics');
+
+    function renderTopics(topics) {
+        if (!recurringTopics) return;
+        if (!topics.length) {
+            recurringTopics.innerHTML = '<div class="text-xs text-surface-400 col-span-full py-8 text-center">No suggestions available yet. Continue journaling to unlock insights.</div>';
+            return;
+        }
+        recurringTopics.innerHTML = topics.map((topic, index) => `
+            <div class="topic-card card-fade-in h-40 group cursor-pointer" data-topic-index="${index}" style="animation-delay: ${0.2 + (index * 0.1)}s">
+                <div class="topic-card-inner relative w-full h-full transition-transform duration-500 transform-style-3d">
+                    <!-- Front -->
+                    <div class="topic-face absolute inset-0 backface-hidden bg-white dark:bg-surface-800 rounded-2xl p-6 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] flex flex-col justify-between">
+                        <div class="text-lg font-medium text-surface-900 dark:text-white leading-snug">${topic.title}</div>
+                        <div class="flex justify-end text-surface-300 group-hover:text-surface-500 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                        </div>
+                    </div>
+                    <!-- Back -->
+                    <div class="topic-face topic-back absolute inset-0 backface-hidden bg-surface-50 dark:bg-surface-700 rounded-2xl p-6 shadow-inner flex items-center justify-center text-center rotate-y-180">
+                         <div class="text-sm text-surface-600 dark:text-surface-300 overflow-y-auto max-h-full scrollbar-thin">${topic.insight}</div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        recurringTopics.querySelectorAll('.topic-card').forEach(card => {
+            card.addEventListener('click', () => card.classList.toggle('is-flipped'));
+        });
+    }
+
+    async function loadRecurringTopics() {
+        if (!recurringTopics) return;
+        recurringTopics.innerHTML = '<div class="text-xs text-surface-400 col-span-full text-center py-12">Gathering suggestions...</div>';
+        if (window.AILoader) AILoader.show('Gathering themes...');
+        try {
+            const resp = await fetch('/api/insights/recurring-topics');
+            const data = await resp.json();
+            if (data.error) {
+                recurringTopics.innerHTML = `<div class="text-xs text-surface-400 col-span-full">${data.error}</div>`;
+                return;
+            }
+            renderTopics(data.topics || []);
+        } catch (e) {
+            recurringTopics.innerHTML = '<div class="text-xs text-surface-400 col-span-full">Topics unavailable.</div>';
+        } finally {
+            if (window.AILoader) AILoader.hide();
+        }
+    }
+
+    // ── Calendar ──────────────────────────────────────────────────
+    const calGrid = document.getElementById('cal-grid');
+    const calLabel = document.getElementById('cal-month-label');
+    const calPrev = document.getElementById('cal-prev');
+    const calNext = document.getElementById('cal-next');
+    const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    let calYear, calMonth;
+
+    function initCalendarDate() {
+        const now = new Date();
+        calYear = now.getFullYear();
+        calMonth = now.getMonth() + 1;
+    }
+
+    async function loadCalendar(year, month) {
+        if (!calGrid) return;
+        calLabel.textContent = `${MONTH_NAMES[month - 1]} ${year}`;
+
+        try {
+            const resp = await fetch(`/api/calendar?year=${year}&month=${month}`);
+            const data = await resp.json();
+            renderCalendar(year, month, data.days || []);
+        } catch (e) {
+            console.error('Failed to load calendar', e);
+        }
+    }
+
+    function renderCalendar(year, month, days) {
+        const entryMap = {};
+        days.forEach(d => { entryMap[d.date] = d.count; });
+
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
+        const firstDay = new Date(year, month - 1, 1);
+        let startDow = firstDay.getDay();
+        // Convert Sunday=0 to Monday-based (Mon=0 .. Sun=6)
+        startDow = (startDow + 6) % 7;
+
+        const daysInMonth = new Date(year, month, 0).getDate();
+
+        let html = '';
+        // Empty cells before the 1st
+        for (let i = 0; i < startDow; i++) {
+            html += '<div></div>';
+        }
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const count = entryMap[dateStr] || 0;
+            const isToday = dateStr === todayStr;
+
+            let classes = 'w-8 h-8 mx-auto flex items-center justify-center rounded-full text-xs transition-colors ';
+
+            if (isToday && count > 0) {
+                classes += 'bg-primary-600 text-white font-bold ring-2 ring-primary-300 dark:ring-primary-400 cursor-pointer hover:bg-primary-700';
+            } else if (isToday) {
+                classes += 'bg-surface-900 dark:bg-white text-white dark:text-surface-900 font-bold';
+            } else if (count > 0) {
+                classes += 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 font-medium cursor-pointer hover:bg-primary-200 dark:hover:bg-primary-800/50';
+            } else {
+                classes += 'bg-surface-100 dark:bg-surface-700/50 text-surface-400 dark:text-surface-500';
+            }
+
+            if (count > 0) {
+                html += `<div><div class="${classes}" data-date="${dateStr}" onclick="window.location.href='/journal?date_from=${dateStr}&date_to=${dateStr}'">${d}</div></div>`;
+            } else {
+                html += `<div><div class="${classes}">${d}</div></div>`;
+            }
+        }
+
+        calGrid.innerHTML = html;
+    }
+
+    if (calPrev) calPrev.addEventListener('click', () => {
+        calMonth--;
+        if (calMonth < 1) { calMonth = 12; calYear--; }
+        loadCalendar(calYear, calMonth);
+    });
+    if (calNext) calNext.addEventListener('click', () => {
+        calMonth++;
+        if (calMonth > 12) { calMonth = 1; calYear++; }
+        loadCalendar(calYear, calMonth);
+    });
+
+    initCalendarDate();
+
+    // ── Daily Reflection Question ─────────────────────────────────────
+    const dailyQuestionText = document.getElementById('daily-question-text');
+    const dailyQuestionLoading = document.getElementById('daily-question-loading');
+    const dailyQuestionMessage = document.getElementById('daily-question-message');
+    const dailyQuestionWriteBtn = document.getElementById('daily-question-write-btn');
+    const dailyQuestionRefreshBtn = document.getElementById('daily-question-refresh-btn');
+    const refreshIcon = document.getElementById('refresh-icon');
+    const refreshSpinner = document.getElementById('refresh-spinner');
+
+    let currentDailyQuestion = '';
+
+    function showDailyQuestion(question, message = null) {
+        dailyQuestionLoading.classList.add('hidden');
+        dailyQuestionText.textContent = question;
+        dailyQuestionText.classList.remove('hidden');
+        currentDailyQuestion = question;
+
+        // Update the write button href with the question
+        const encodedQuestion = encodeURIComponent(question);
+        dailyQuestionWriteBtn.href = `/entry/new?daily_question=${encodedQuestion}`;
+
+        if (message) {
+            dailyQuestionMessage.textContent = message;
+            dailyQuestionMessage.classList.remove('hidden');
+        } else {
+            dailyQuestionMessage.classList.add('hidden');
+        }
+    }
+
+    function showDailyQuestionLoading() {
+        dailyQuestionLoading.classList.remove('hidden');
+        dailyQuestionText.classList.add('hidden');
+        dailyQuestionMessage.classList.add('hidden');
+    }
+
+    async function loadDailyQuestion() {
+        try {
+            const resp = await fetch('/api/dashboard/stats');
+            const data = await resp.json();
+            if (data.daily_question) {
+                const q = data.daily_question;
+                showDailyQuestion(q.question, q.message || null);
+            } else {
+                showDailyQuestion('Was bewegt dich heute?');
+            }
+            
+            // Cache personalized prompts and entry count for accordion
+            if (data.personalized_prompts && data.personalized_prompts.length > 0) {
+                window.cachedPersonalizedPrompts = data.personalized_prompts;
+            }
+            window.cachedEntryCount = data.entry_count || 0;
+        } catch (error) {
+            console.error('Failed to load daily question', error);
+            showDailyQuestion('Was bewegt dich heute?', 'Frage konnte nicht geladen werden');
+        }
+    }
+
+    async function refreshDailyQuestion() {
+        // Show loading state on refresh button
+        refreshIcon.classList.add('hidden');
+        refreshSpinner.classList.remove('hidden');
+        dailyQuestionRefreshBtn.disabled = true;
+
+        try {
+            const resp = await fetch('/api/daily-question/new', { method: 'POST' });
+            const data = await resp.json();
+
+            if (data.error) {
+                showDailyQuestion(currentDailyQuestion || 'Was bewegt dich heute?', data.error);
+            } else if (data.question) {
+                showDailyQuestion(data.question, data.message || null);
+            }
+        } catch (error) {
+            console.error('Failed to refresh daily question', error);
+            showDailyQuestion(currentDailyQuestion || 'Was bewegt dich heute?', 'Neue Frage konnte nicht geladen werden');
+        } finally {
+            // Reset button state
+            refreshIcon.classList.remove('hidden');
+            refreshSpinner.classList.add('hidden');
+            dailyQuestionRefreshBtn.disabled = false;
+        }
+    }
+
+    // Mark question as answered when clicking "write" button
+    async function markQuestionAnswered() {
+        try {
+            await fetch('/api/daily-question/answered', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answered: true })
+            });
+        } catch (error) {
+            console.error('Failed to mark question as answered', error);
+        }
+    }
+
+    if (dailyQuestionRefreshBtn) {
+        dailyQuestionRefreshBtn.addEventListener('click', refreshDailyQuestion);
+    }
+
+    if (dailyQuestionWriteBtn) {
+        dailyQuestionWriteBtn.addEventListener('click', markQuestionAnswered);
+    }
+
+    // ── Explore More Accordion ─────────────────────────────────────────
+    const exploreMoreToggle = document.getElementById('explore-more-toggle');
+    const exploreMoreContent = document.getElementById('explore-more-content');
+    const exploreChevron = document.getElementById('explore-chevron');
+    const explorePromptsContainer = document.getElementById('explore-prompts-container');
+    const exploreMoreLoading = document.getElementById('explore-more-loading');
+    const exploreMoreEmpty = document.getElementById('explore-more-empty');
+    const exploreMoreActions = document.getElementById('explore-more-actions');
+    const exploreRefreshBtn = document.getElementById('explore-refresh-btn');
+    const exploreRefreshIcon = document.getElementById('explore-refresh-icon');
+    const exploreRefreshSpinner = document.getElementById('explore-refresh-spinner');
+
+    let exploreMoreOpen = false;
+    let personalizedPromptsLoaded = false;
+
+    function toggleExploreMore() {
+        exploreMoreOpen = !exploreMoreOpen;
+        if (exploreMoreOpen) {
+            exploreMoreContent.classList.remove('hidden');
+            exploreChevron.style.transform = 'rotate(180deg)';
+            loadPersonalizedPrompts(false);
+        } else {
+            exploreMoreContent.classList.add('hidden');
+            exploreChevron.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    if (exploreMoreToggle) {
+        exploreMoreToggle.addEventListener('click', toggleExploreMore);
+    }
+
+    function renderPersonalizedPrompts(prompts, entryCount = 0) {
+        if (!explorePromptsContainer) return;
+
+        if (!prompts || prompts.length === 0) {
+            explorePromptsContainer.classList.add('hidden');
+            exploreMoreEmpty.classList.remove('hidden');
+            exploreMoreActions.classList.add('hidden');
+            // Update the entry count in the message
+            const entryCountSpan = document.getElementById('current-entry-count');
+            if (entryCountSpan) {
+                entryCountSpan.textContent = entryCount;
+            }
+            return;
+        }
+
+        exploreMoreEmpty.classList.add('hidden');
+        exploreMoreActions.classList.remove('hidden');
+
+        // Category icons and colors
+        const categoryConfig = {
+            'explore': { icon: '🔍', color: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300' },
+            'revisit': { icon: '🔄', color: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300' },
+            'growth': { icon: '🌱', color: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300' },
+        };
+
+        explorePromptsContainer.innerHTML = prompts.map((prompt, index) => {
+            const config = categoryConfig[prompt.category] || categoryConfig['explore'];
+            return `
+                <div class="group relative bg-white dark:bg-surface-800 rounded-xl p-4 border border-surface-200 dark:border-surface-700 hover:border-surface-300 dark:hover:border-surface-600 transition-all cursor-pointer"
+                     onclick="writeAboutPrompt(${index})">
+                    <div class="flex items-start gap-3">
+                        <div class="flex-shrink-0 w-8 h-8 ${config.color} rounded-lg flex items-center justify-center text-sm">
+                            ${config.icon}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-surface-800 dark:text-surface-200 leading-relaxed mb-1">${prompt.text}</p>
+                            <p class="text-xs text-surface-500 dark:text-surface-400">${prompt.reason || ''}</p>
+                        </div>
+                        <div class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        explorePromptsContainer.classList.remove('hidden');
+
+        // Store prompts for click handler
+        window.currentPersonalizedPrompts = prompts;
+        window.cachedPersonalizedPrompts = prompts;
+        if (Number.isFinite(entryCount)) {
+            window.cachedEntryCount = entryCount;
+        }
+    }
+
+    window.writeAboutPrompt = function(index) {
+        const prompts = window.currentPersonalizedPrompts;
+        if (!prompts || !prompts[index]) return;
+        
+        const prompt = prompts[index];
+        const encodedPrompt = encodeURIComponent(prompt.text);
+        window.location.href = `/entry/new?daily_question=${encodedPrompt}`;
+    };
+
+    async function loadPersonalizedPrompts(forceRefresh = false) {
+        if (!exploreMoreLoading || !explorePromptsContainer) return;
+
+        exploreMoreLoading.classList.remove('hidden');
+        explorePromptsContainer.classList.add('hidden');
+        exploreMoreEmpty.classList.add('hidden');
+
+        if (forceRefresh) {
+            window.cachedPersonalizedPrompts = null;
+        }
+
+        // Check if we have cached prompts from initial dashboard load
+        if (!forceRefresh && window.cachedPersonalizedPrompts && window.cachedPersonalizedPrompts.length > 0) {
+            renderPersonalizedPrompts(window.cachedPersonalizedPrompts, window.cachedEntryCount || 0);
+            personalizedPromptsLoaded = true;
+            exploreMoreLoading.classList.add('hidden');
+            return;
+        }
+
+        try {
+            // Fall back to dedicated endpoint
+            const promptResp = await fetch('/api/prompts/personalized');
+            if (promptResp.ok) {
+                const promptData = await promptResp.json();
+                if (promptData.prompts && promptData.prompts.length > 0) {
+                    renderPersonalizedPrompts(promptData.prompts, window.cachedEntryCount || 0);
+                } else {
+                    renderPersonalizedPrompts([], window.cachedEntryCount || 0);
+                }
+                personalizedPromptsLoaded = true;
+            } else {
+                renderPersonalizedPrompts([], window.cachedEntryCount || 0);
+            }
+        } catch (error) {
+            console.error('Failed to load personalized prompts', error);
+            renderPersonalizedPrompts([], window.cachedEntryCount || 0);
+        } finally {
+            exploreMoreLoading.classList.add('hidden');
+        }
+    }
+
+    async function refreshPersonalizedPrompts() {
+        if (!exploreRefreshIcon || !exploreRefreshSpinner) return;
+
+        exploreRefreshIcon.classList.add('hidden');
+        exploreRefreshSpinner.classList.remove('hidden');
+        exploreRefreshBtn.disabled = true;
+
+        try {
+            // Force regeneration via the dedicated endpoint
+            const resp = await fetch('/api/prompts/personalized');
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data.prompts && data.prompts.length > 0) {
+                    renderPersonalizedPrompts(data.prompts, window.cachedEntryCount || 0);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to refresh personalized prompts', error);
+        } finally {
+            exploreRefreshIcon.classList.remove('hidden');
+            exploreRefreshSpinner.classList.add('hidden');
+            exploreRefreshBtn.disabled = false;
+        }
+    }
+
+    if (exploreRefreshBtn) {
+        exploreRefreshBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            refreshPersonalizedPrompts();
+        });
+    }
+
+    // Initialize
+    loadDailyQuestion();
+    loadCalendar(calYear, calMonth);
+    loadEmotionBubbles();
+    BaustellenManager.load();
+    loadBigFive();
+    loadRecurringTopics();
+</script>
+{% endblock %}

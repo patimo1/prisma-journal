@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+{% block title %}Welcome - Setup Wizard{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-8">
+    <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 overflow-hidden shadow-lg">
+        <!-- Header -->
+        <div class="bg-primary-600 px-6 py-8 text-center">
+            <h1 class="text-2xl font-bold text-white mb-2">Welcome to Your Journal</h1>
+            <p class="text-primary-100">Let's get you set up in just a minute</p>
+        </div>
+
+        <!-- Wizard Steps -->
+        <div id="wizard-container">
+            <!-- Step 1: Service Check -->
+            <div class="wizard-step" data-step="1">
+                <div class="px-6 py-6">
+                    <h2 class="text-lg font-semibold text-surface-900 dark:text-white mb-4">Step 1: Checking Services</h2>
+                    <p class="text-sm text-surface-600 dark:text-surface-400 mb-6">We're checking which AI services are available on your system.</p>
+
+                    <div id="service-checks" class="space-y-3">
+                        <div class="flex items-center justify-between p-3 bg-surface-50 dark:bg-surface-700/50 rounded-lg">
+                            <span class="text-sm font-medium text-surface-700 dark:text-surface-300">Checking services...</span>
+                            <span class="text-xs text-surface-400">Please wait</span>
+                        </div>
+                    </div>
+
+                    <div id="service-summary" class="hidden mt-6 p-4 rounded-lg bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800">
+                        <p class="text-sm text-primary-700 dark:text-primary-300" id="service-summary-text"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Quick Settings -->
+            <div class="wizard-step hidden" data-step="2">
+                <div class="px-6 py-6">
+                    <h2 class="text-lg font-semibold text-surface-900 dark:text-white mb-4">Step 2: Basic Preferences</h2>
+                    <p class="text-sm text-surface-600 dark:text-surface-400 mb-6">Set up your basic preferences. You can change these later in Settings.</p>
+
+                    <div class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">Color Theme</label>
+                            <div class="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                                {% for theme_name, colors in themes.items() %}
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="setup_theme" value="{{ theme_name }}" class="sr-only peer" {{ 'checked' if theme_name == 'ocean' }}>
+                                    <div class="w-full aspect-square rounded-lg border-2 border-transparent peer-checked:border-primary-500 peer-checked:ring-2 peer-checked:ring-primary-200 transition-all"
+                                         style="background: linear-gradient(135deg, {{ colors['400'] }} 0%, {{ colors['600'] }} 100%)"
+                                         title="{{ theme_name|capitalize }}">
+                                    </div>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">Appearance</label>
+                            <select id="setup_theme_mode" class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
+                                <option value="light">Light mode</option>
+                                <option value="dark">Dark mode</option>
+                                <option value="system" selected>Follow system</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">Default Entry Type</label>
+                            <select id="setup_entry_type" class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
+                                <option value="blank" selected>Blank entry</option>
+                                <option value="prompt">Random prompt</option>
+                                <option value="framework">Framework</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Quick Tour -->
+            <div class="wizard-step hidden" data-step="3">
+                <div class="px-6 py-6">
+                    <h2 class="text-lg font-semibold text-surface-900 dark:text-white mb-4">Step 3: Quick Tour</h2>
+                    <p class="text-sm text-surface-600 dark:text-surface-400 mb-6">Here's what you can do with your journal.</p>
+
+                    <div class="space-y-4">
+                        <div class="flex gap-4 p-4 bg-surface-50 dark:bg-surface-700/50 rounded-lg">
+                            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-surface-900 dark:text-white">Write Freely</h3>
+                                <p class="text-sm text-surface-600 dark:text-surface-400">Type or use voice input to capture your thoughts. Use frameworks for guided reflection.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-4 p-4 bg-surface-50 dark:bg-surface-700/50 rounded-lg">
+                            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-surface-900 dark:text-white">Get AI Insights</h3>
+                                <p class="text-sm text-surface-600 dark:text-surface-400">After writing, click "Finish Entry" to get emotion analysis, summaries, and artwork.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-4 p-4 bg-surface-50 dark:bg-surface-700/50 rounded-lg">
+                            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-surface-900 dark:text-white">Search & Discover</h3>
+                                <p class="text-sm text-surface-600 dark:text-surface-400">Use semantic search to find entries by meaning, not just keywords.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-4 p-4 bg-surface-50 dark:bg-surface-700/50 rounded-lg">
+                            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-surface-900 dark:text-white">Track Patterns</h3>
+                                <p class="text-sm text-surface-600 dark:text-surface-400">The dashboard shows emotion trends, writing streaks, and personal insights.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="px-6 py-4 border-t border-surface-200 dark:border-surface-700 flex items-center justify-between">
+            <button id="prev-btn" onclick="prevStep()" class="hidden px-4 py-2 text-sm font-medium text-surface-600 dark:text-surface-400 hover:text-surface-900 dark:hover:text-white transition">
+                &larr; Back
+            </button>
+            <div class="flex-1"></div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-surface-400" id="step-indicator">Step 1 of 3</span>
+                <button id="next-btn" onclick="nextStep()" class="px-6 py-2.5 bg-primary-600 text-white text-sm font-semibold rounded-lg hover:bg-primary-700 transition">
+                    Next
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentStep = 1;
+    const totalSteps = 3;
+
+    function showStep(step) {
+        document.querySelectorAll('.wizard-step').forEach(el => {
+            el.classList.add('hidden');
+        });
+        document.querySelector(`[data-step="${step}"]`).classList.remove('hidden');
+
+        // Update indicator
+        document.getElementById('step-indicator').textContent = `Step ${step} of ${totalSteps}`;
+
+        // Update buttons
+        document.getElementById('prev-btn').classList.toggle('hidden', step === 1);
+        document.getElementById('next-btn').textContent = step === totalSteps ? 'Start Journaling' : 'Next';
+    }
+
+    function nextStep() {
+        if (currentStep < totalSteps) {
+            currentStep++;
+            showStep(currentStep);
+        } else {
+            finishSetup();
+        }
+    }
+
+    function prevStep() {
+        if (currentStep > 1) {
+            currentStep--;
+            showStep(currentStep);
+        }
+    }
+
+    async function checkServices() {
+        const container = document.getElementById('service-checks');
+        const summary = document.getElementById('service-summary');
+        const summaryText = document.getElementById('service-summary-text');
+
+        try {
+            const resp = await fetch('/api/services/refresh', { method: 'POST' });
+            const statusResp = await fetch('/status?format=json');
+            const data = await statusResp.json();
+
+            const services = [
+                { name: 'Ollama (AI)', key: 'ollama', required: true },
+                { name: 'Whisper (Voice)', key: 'whisper', required: false },
+                { name: 'ChromaDB (Search)', key: 'chromadb', required: false },
+                { name: 'Embeddings', key: 'embeddings', required: false },
+                { name: 'Stable Diffusion', key: 'stable_diffusion', required: false },
+            ];
+
+            let html = '';
+            let readyCount = 0;
+            let requiredReady = true;
+
+            services.forEach(svc => {
+                const available = data.services && data.services[svc.key];
+                const icon = available
+                    ? '<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>'
+                    : '<svg class="w-5 h-5 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>';
+
+                const status = available ? 'Ready' : (svc.required ? 'Required' : 'Optional');
+                const statusClass = available ? 'text-green-600 dark:text-green-400' : 'text-surface-400';
+
+                html += `
+                    <div class="flex items-center justify-between p-3 bg-surface-50 dark:bg-surface-700/50 rounded-lg">
+                        <div class="flex items-center gap-3">
+                            ${icon}
+                            <span class="text-sm font-medium text-surface-700 dark:text-surface-300">${svc.name}</span>
+                        </div>
+                        <span class="text-xs ${statusClass}">${status}</span>
+                    </div>
+                `;
+
+                if (available) readyCount++;
+                if (svc.required && !available) requiredReady = false;
+            });
+
+            container.innerHTML = html;
+
+            // Show summary
+            summary.classList.remove('hidden');
+            if (readyCount === services.length) {
+                summaryText.textContent = 'All services are ready! You have full functionality.';
+            } else if (requiredReady) {
+                summaryText.textContent = `${readyCount} of ${services.length} services ready. The app will work with reduced features.`;
+            } else {
+                summaryText.textContent = 'Ollama is required for AI features. Please start Ollama and refresh.';
+            }
+
+        } catch (e) {
+            container.innerHTML = `
+                <div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-sm text-yellow-700 dark:text-yellow-300">
+                    Could not check services. The app will still work but some features may be limited.
+                </div>
+            `;
+        }
+    }
+
+    async function finishSetup() {
+        // Collect settings
+        const theme = document.querySelector('input[name="setup_theme"]:checked')?.value || 'ocean';
+        const themeMode = document.getElementById('setup_theme_mode').value;
+        const entryType = document.getElementById('setup_entry_type').value;
+
+        // Save settings and mark setup complete
+        try {
+            const formData = new FormData();
+            formData.append('color_theme', theme);
+            formData.append('theme_mode', themeMode);
+            formData.append('default_entry_type', entryType);
+            formData.append('setup_complete', 'true');
+
+            await fetch('/setup/complete', {
+                method: 'POST',
+                body: formData
+            });
+
+            // Redirect to dashboard
+            window.location.href = '/';
+        } catch (e) {
+            window.location.href = '/';
+        }
+    }
+
+    // Initialize
+    showStep(1);
+    checkServices();
+</script>
+{% endblock %}

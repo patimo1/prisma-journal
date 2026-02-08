@@ -1,0 +1,442 @@
+{% extends "base.html" %}
+{% block title %}Journal Feed{% endblock %}
+
+{# ── Macro: build a page URL preserving sort ── #}
+{% macro page_url(n) -%}
+/journal?page={{ n }}&sort={{ filters.sort }}&dir={{ filters.dir }}
+{%- endmacro %}
+
+{% block head %}
+<style>
+    /* ── Grid masonry via CSS columns ── */
+    .entry-view-grid {
+        column-count: 1;
+        column-gap: 1rem;
+    }
+    @media (min-width: 640px) { .entry-view-grid { column-count: 2; } }
+    @media (min-width: 1024px) { .entry-view-grid { column-count: 3; } }
+    .entry-view-grid .entry-card {
+        break-inside: avoid;
+        margin-bottom: 1rem;
+        display: inline-block;
+        width: 100%;
+    }
+    .entry-view-grid .entry-card .card-inner {
+        display: block;
+    }
+    .entry-view-grid .entry-card .card-thumbnail {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+        border-radius: 0.5rem 0.5rem 0 0;
+    }
+    .entry-view-grid .entry-card .card-excerpt {
+        display: -webkit-box;
+        -webkit-line-clamp: 4;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .entry-view-grid .entry-card .list-thumbnail { display: none; }
+
+    /* ── List view ── */
+    .entry-view-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+    .entry-view-list .entry-card:nth-child(even) .card-inner {
+        background-color: rgba(0,0,0,0.015);
+    }
+    :is(.dark) .entry-view-list .entry-card:nth-child(even) .card-inner {
+        background-color: rgba(255,255,255,0.03);
+    }
+    .entry-view-list .entry-card .card-inner {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem 1rem;
+    }
+    .entry-view-list .entry-card .card-thumbnail { display: none; }
+    .entry-view-list .entry-card .list-thumbnail {
+        display: block;
+        width: 4rem;
+        height: 4rem;
+        object-fit: cover;
+        border-radius: 0.375rem;
+        flex-shrink: 0;
+    }
+    .entry-view-list .entry-card .card-body { flex: 1; min-width: 0; }
+    .entry-view-list .entry-card .card-excerpt {
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .entry-view-list .entry-card .card-tags { display: none; }
+    .entry-view-list .entry-card .card-meta-block { flex-shrink: 0; text-align: right; }
+    .entry-view-list .no-thumbnail-spacer { display: none; }
+
+    /* ── Hover on grid cards ── */
+    .entry-view-grid .entry-card .card-inner {
+        transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .entry-view-grid .entry-card .card-inner:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        transform: translateY(-2px);
+    }
+
+    /* ── Bulk bar slide down ── */
+    @keyframes slideDown {
+        from { transform: translateY(-100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    .bulk-bar-enter { animation: slideDown 0.25s ease-out; }
+
+    /* ── Card fade out on delete ── */
+    .card-fade-out {
+        transition: opacity 0.35s, transform 0.35s;
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    /* ── Emotion badge colors ── */
+    .emo-joy        { background: #fef9c3; color: #854d0e; }
+    .emo-trust      { background: #d1fae5; color: #065f46; }
+    .emo-fear       { background: #ede9fe; color: #5b21b6; }
+    .emo-surprise   { background: #fce7f3; color: #9d174d; }
+    .emo-sadness    { background: #dbeafe; color: #1e40af; }
+    .emo-disgust    { background: #d1fae5; color: #166534; }
+    .emo-anger      { background: #fee2e2; color: #991b1b; }
+    .emo-anticipation { background: #ffedd5; color: #9a3412; }
+
+    :is(.dark) .emo-joy        { background: #422006; color: #fef08a; }
+    :is(.dark) .emo-trust      { background: #064e3b; color: #6ee7b7; }
+    :is(.dark) .emo-fear       { background: #4c1d95; color: #c4b5fd; }
+    :is(.dark) .emo-surprise   { background: #831843; color: #f9a8d4; }
+    :is(.dark) .emo-sadness    { background: #1e3a5f; color: #93c5fd; }
+    :is(.dark) .emo-disgust    { background: #064e3b; color: #6ee7b7; }
+    :is(.dark) .emo-anger      { background: #7f1d1d; color: #fca5a5; }
+    :is(.dark) .emo-anticipation { background: #7c2d12; color: #fdba74; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+
+    {# ── Header ── #}
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-100">Journal</h1>
+            <p class="text-sm text-surface-500 dark:text-surface-400 mt-0.5">{{ entry_count }} entr{{ 'y' if entry_count == 1 else 'ies' }}</p>
+        </div>
+        <a href="/entry/new" class="bg-primary-600 text-white font-semibold text-sm px-5 py-2.5 rounded-lg hover:bg-primary-700 transition">New Entry</a>
+    </div>
+
+    {# ── Toolbar ── #}
+    <div class="bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 px-4 py-3 mb-4 flex flex-wrap items-center gap-3">
+        {# View toggle #}
+        <div class="flex rounded-lg border border-surface-200 dark:border-surface-600 overflow-hidden">
+            <button id="btn-view-list" onclick="setView('list')" title="List view"
+                class="view-btn px-3 py-1.5 text-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <button id="btn-view-grid" onclick="setView('grid')" title="Grid view"
+                class="view-btn px-3 py-1.5 text-sm transition-colors border-l border-surface-200 dark:border-surface-600">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
+            </button>
+        </div>
+
+        {# Sort dropdown #}
+        <select id="sort-select" onchange="applySort()" class="text-sm border border-surface-200 dark:border-surface-600 rounded-lg px-3 py-1.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200 focus:ring-primary-500 focus:border-primary-500">
+            <option value="created_at-DESC" {{ 'selected' if filters.sort == 'created_at' and filters.dir == 'DESC' }}>Newest first</option>
+            <option value="created_at-ASC" {{ 'selected' if filters.sort == 'created_at' and filters.dir == 'ASC' }}>Oldest first</option>
+            <option value="word_count-DESC" {{ 'selected' if filters.sort == 'word_count' and filters.dir == 'DESC' }}>Longest</option>
+            <option value="word_count-ASC" {{ 'selected' if filters.sort == 'word_count' and filters.dir == 'ASC' }}>Shortest</option>
+            <option value="emotion-ASC" {{ 'selected' if filters.sort == 'emotion' and filters.dir == 'ASC' }}>Emotion A-Z</option>
+            <option value="emotion-DESC" {{ 'selected' if filters.sort == 'emotion' and filters.dir == 'DESC' }}>Emotion Z-A</option>
+        </select>
+
+        <div class="flex-1"></div>
+
+        {# Multi-select toggle #}
+        <button id="btn-select-mode" onclick="toggleMultiSelect()" class="text-sm px-3 py-1.5 rounded-lg border border-surface-200 dark:border-surface-600 text-surface-700 dark:text-surface-200 hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors">
+            Select
+        </button>
+    </div>
+
+    {# ── Bulk action bar ── #}
+    <div id="bulk-bar" class="hidden sticky top-0 z-30 bg-primary-600 text-white rounded-xl px-5 py-3 mb-4 flex items-center gap-4 bulk-bar-enter shadow-lg">
+        <label class="inline-flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="select-all-cb" onchange="toggleSelectAll()" class="rounded border-white/30 text-white focus:ring-white/50 bg-primary-500">
+            <span class="text-sm font-medium">All</span>
+        </label>
+        <span id="selected-count" class="text-sm">0 selected</span>
+        <div class="flex-1"></div>
+        <button onclick="exportSelected()" class="text-sm px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 transition">Export</button>
+        <button onclick="deleteSelected()" class="text-sm px-3 py-1 rounded-lg bg-red-500 hover:bg-red-600 transition">Delete</button>
+        <button onclick="toggleMultiSelect()" class="text-sm px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 transition">Cancel</button>
+    </div>
+
+    {# ── Entries ── #}
+    {% if entries %}
+    <div id="entries-container" class="entry-view-list">
+        {% for entry in entries %}
+        <div class="entry-card relative" data-entry-id="{{ entry.id }}">
+            {# Checkbox (hidden until select mode) #}
+            <input type="checkbox" class="entry-checkbox hidden absolute top-3 left-3 z-10 w-4 h-4 rounded border-surface-300 dark:border-surface-500 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                data-id="{{ entry.id }}" onchange="updateSelectedCount()">
+
+            <a href="/entry/{{ entry.id }}" class="entry-link card-inner relative block bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 overflow-hidden no-underline text-inherit">
+                {# Grid thumbnail #}
+                {% if entry.artwork_path %}
+                <img src="{{ entry.artwork_path }}" alt="" class="card-thumbnail" loading="lazy">
+                <img src="{{ entry.artwork_path }}" alt="" class="list-thumbnail" loading="lazy">
+                {% endif %}
+
+                <div class="card-body p-4">
+                    <h2 class="text-base font-semibold text-surface-900 dark:text-surface-100 truncate">
+                        {{ entry.title or entry.content[:60] ~ '...' }}
+                    </h2>
+                    <p class="card-excerpt text-surface-600 dark:text-surface-400 mt-1 text-sm leading-relaxed">
+                        {{ entry.content[:250] }}{% if entry.content|length > 250 %}...{% endif %}
+                    </p>
+
+                    {# Tags (grid only) #}
+                    {% if entry.tags %}
+                    <div class="card-tags flex flex-wrap gap-1 mt-2">
+                        {% for tag in entry.tags[:3] %}
+                        <span class="bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 px-2 py-0.5 rounded-full text-xs">{{ tag }}</span>
+                        {% endfor %}
+                        {% if entry.tags|length > 3 %}
+                        <span class="text-xs text-surface-400">+{{ entry.tags|length - 3 }}</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <div class="flex items-center gap-2 mt-2 text-xs text-surface-400 dark:text-surface-500">
+                        <span>{{ entry.created_at[:10] }}</span>
+                        <span>&middot;</span>
+                        <span>{{ entry.word_count }} words</span>
+                        {% if entry.emotions %}
+                        <span>&middot;</span>
+                        <span class="emo-{{ entry.emotions[0].emotion }} px-1.5 py-0.5 rounded-full text-xs capitalize">{{ entry.emotions[0].emotion }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {# List-view meta block #}
+                <div class="card-meta-block hidden pr-4">
+                    <span class="text-xs text-surface-400">{{ entry.created_at[:10] }}</span>
+                    {% if entry.emotions %}
+                    <span class="block mt-1 emo-{{ entry.emotions[0].emotion }} px-1.5 py-0.5 rounded-full text-xs capitalize text-center">{{ entry.emotions[0].emotion }}</span>
+                    {% endif %}
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    {# ── Pagination ── #}
+    {% if total_pages > 1 %}
+    <div class="flex justify-center items-center gap-2 mt-8">
+        {% if page > 1 %}
+        <a href="{{ page_url(page - 1) }}" class="px-4 py-2 rounded-lg bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700 transition">&larr; Previous</a>
+        {% endif %}
+        <span class="px-4 py-2 text-sm text-surface-500 dark:text-surface-400">Page {{ page }} of {{ total_pages }}</span>
+        {% if page < total_pages %}
+        <a href="{{ page_url(page + 1) }}" class="px-4 py-2 rounded-lg bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700 transition">Next &rarr;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    {# ── Empty state ── #}
+    <div class="bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 p-12 text-center">
+        <p class="text-surface-500 dark:text-surface-400 text-lg mb-4">Your journal is empty.</p>
+        <a href="/entry/new" class="inline-block bg-primary-600 text-white font-semibold text-sm px-5 py-2.5 rounded-lg hover:bg-primary-700 transition">Write Your First Entry</a>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    // ── View toggle ──
+    const container = document.getElementById('entries-container');
+    const btnList = document.getElementById('btn-view-list');
+    const btnGrid = document.getElementById('btn-view-grid');
+
+    function setViewInternal(mode) {
+        if (!container) return;
+        container.className = mode === 'grid' ? 'entry-view-grid' : 'entry-view-list';
+
+        // List view: show meta block, hide bottom meta in card-body
+        container.querySelectorAll('.card-meta-block').forEach(el => {
+            el.classList.toggle('hidden', mode === 'grid');
+            if (mode === 'list') el.classList.add('flex', 'flex-col', 'items-end', 'justify-center');
+            else el.classList.remove('flex', 'flex-col', 'items-end', 'justify-center');
+        });
+
+        // Update button active states
+        [btnList, btnGrid].forEach(b => {
+            b.classList.remove('bg-primary-600', 'text-white', 'bg-surface-50', 'dark:bg-surface-700', 'text-surface-700', 'dark:text-surface-200');
+        });
+        const active = mode === 'grid' ? btnGrid : btnList;
+        const inactive = mode === 'grid' ? btnList : btnGrid;
+        active.classList.add('bg-primary-600', 'text-white');
+        inactive.classList.add('text-surface-700', 'dark:text-surface-200');
+
+        localStorage.setItem('journal_view_mode', mode);
+    }
+    window.setView = setViewInternal;
+
+    // Init from stored preference
+    const stored = localStorage.getItem('journal_view_mode') || '{{ ui_settings.journal_view if ui_settings else "list" }}';
+    setViewInternal(stored);
+
+    // ── Sort ──
+    window.applySort = function() {
+        const val = document.getElementById('sort-select').value;
+        const [sort, dir] = val.split('-');
+        const url = new URL(window.location.href);
+        url.searchParams.set('sort', sort);
+        url.searchParams.set('dir', dir);
+        url.searchParams.set('page', '1');
+        window.location.href = url.toString();
+    };
+
+
+    // ── Multi-select ──
+    let selectMode = false;
+
+    window.toggleMultiSelect = function() {
+        selectMode = !selectMode;
+        const bulkBar = document.getElementById('bulk-bar');
+        const checkboxes = document.querySelectorAll('.entry-checkbox');
+        const selectBtn = document.getElementById('btn-select-mode');
+
+        if (selectMode) {
+            bulkBar.classList.remove('hidden');
+            selectBtn.classList.add('bg-primary-100', 'dark:bg-primary-900/30', 'text-primary-700', 'dark:text-primary-300');
+            checkboxes.forEach(cb => {
+                cb.classList.remove('hidden');
+                cb.checked = false;
+            });
+        } else {
+            bulkBar.classList.add('hidden');
+            selectBtn.classList.remove('bg-primary-100', 'dark:bg-primary-900/30', 'text-primary-700', 'dark:text-primary-300');
+            checkboxes.forEach(cb => {
+                cb.classList.add('hidden');
+                cb.checked = false;
+            });
+            document.getElementById('select-all-cb').checked = false;
+        }
+        updateSelectedCount();
+
+        // In select mode, intercept card link clicks to toggle checkbox
+        document.querySelectorAll('.entry-card').forEach(card => {
+            const link = card.querySelector('.entry-link');
+            if (!link) return;
+            if (selectMode) {
+                link._origClick = function(e) {
+                    e.preventDefault();
+                    const cb = card.querySelector('.entry-checkbox');
+                    cb.checked = !cb.checked;
+                    updateSelectedCount();
+                };
+                link.addEventListener('click', link._origClick);
+            } else {
+                if (link._origClick) {
+                    link.removeEventListener('click', link._origClick);
+                    delete link._origClick;
+                }
+            }
+        });
+    };
+
+    window.toggleSelectAll = function() {
+        const all = document.getElementById('select-all-cb').checked;
+        document.querySelectorAll('.entry-checkbox').forEach(cb => { cb.checked = all; });
+        updateSelectedCount();
+    };
+
+    window.updateSelectedCount = function() {
+        const count = getSelectedIds().length;
+        document.getElementById('selected-count').textContent = count + ' selected';
+    };
+
+    function getSelectedIds() {
+        return Array.from(document.querySelectorAll('.entry-checkbox:checked')).map(cb => cb.dataset.id);
+    }
+    window.getSelectedIds = getSelectedIds;
+
+    // ── Bulk delete ──
+    window.deleteSelected = async function() {
+        const ids = getSelectedIds();
+        if (!ids.length) return;
+        if (!confirm('Delete ' + ids.length + ' entr' + (ids.length === 1 ? 'y' : 'ies') + '? This cannot be undone.')) return;
+
+        try {
+            const resp = await fetch('/api/entries/bulk-delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ entry_ids: ids }),
+            });
+            if (!resp.ok) throw new Error('Delete failed');
+
+            // Fade out deleted cards
+            ids.forEach(id => {
+                const card = document.querySelector('[data-entry-id="' + id + '"]');
+                if (card) card.classList.add('card-fade-out');
+            });
+
+            setTimeout(() => {
+                ids.forEach(id => {
+                    const card = document.querySelector('[data-entry-id="' + id + '"]');
+                    if (card) card.remove();
+                });
+                // If no cards left, reload
+                if (!document.querySelectorAll('.entry-card').length) {
+                    window.location.reload();
+                }
+                updateSelectedCount();
+            }, 400);
+        } catch (err) {
+            alert('Failed to delete entries. Please try again.');
+        }
+    };
+
+    // ── Export ──
+    window.exportSelected = async function() {
+        const ids = getSelectedIds();
+        if (!ids.length) return;
+
+        try {
+            const resp = await fetch('/api/entries/export', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ entry_ids: ids }),
+            });
+            if (!resp.ok) throw new Error('Export failed');
+            const data = await resp.json();
+
+            const blob = new Blob([JSON.stringify(data.entries, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const today = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = 'journal-export-' + today + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            alert('Failed to export entries. Please try again.');
+        }
+    };
+})();
+</script>
+{% endblock %}

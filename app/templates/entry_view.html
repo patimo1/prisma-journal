@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% block title %}{{ entry.title or entry.summary or 'Entry' }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <!-- Header -->
+    <div class="flex justify-between items-start mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-surface-900">{{ entry.title or entry.summary or 'Journal Entry' }}</h1>
+            <div class="flex items-center gap-3 mt-2 text-sm text-surface-500">
+                <span>{{ entry.created_at[:10] }}</span>
+                <span class="bg-surface-100 px-2 py-0.5 rounded-full text-xs">{{ entry.entry_type }}</span>
+                <span class="text-xs">{{ entry.word_count }} words</span>
+                {% if entry.emotions %}
+                    {% for em in entry.emotions %}
+                    <span class="bg-surface-100 px-2 py-0.5 rounded-full text-xs">{{ em.emotion }} ({{ em.intensity }})</span>
+                    {% endfor %}
+                {% endif %}
+                {% if entry.tags %}
+                    {% for tag in entry.tags %}
+                    <span class="bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full text-xs">{{ tag }}</span>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <a href="/ask?entry_id={{ entry.id }}" class="bg-surface-900 text-white text-sm font-medium px-4 py-2 rounded-lg transition">Discuss</a>
+            <a href="/entry/{{ entry.id }}/edit" class="bg-surface-100 hover:bg-surface-200 text-surface-700 text-sm font-medium px-4 py-2 rounded-lg transition">Edit</a>
+            <form method="POST" action="/entry/{{ entry.id }}/delete" onsubmit="return confirm('Delete this entry?')">
+                <button type="submit" class="bg-red-50 hover:bg-red-100 text-red-600 text-sm font-medium px-4 py-2 rounded-lg transition">Delete</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="bg-white rounded-2xl border border-surface-200 p-8 mb-8">
+        <div class="prose text-surface-800 whitespace-pre-wrap leading-relaxed">{{ entry.content }}</div>
+    </div>
+
+    <!-- AI Analysis -->
+    <div class="bg-white rounded-2xl border border-surface-200 p-8 mb-8">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold text-surface-900">AI Insights</h2>
+            <button onclick="analyzeEntry()" id="analyze-btn" class="bg-primary-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-primary-700 transition">
+                {% if entry.summary %}Re-analyze{% else %}Analyze{% endif %}
+            </button>
+        </div>
+        <div id="analysis-content" class="prose text-surface-700 text-sm whitespace-pre-wrap">
+            {% if entry.summary %}
+                {{ entry.summary }}
+            {% else %}
+                <p class="text-surface-400 italic">Click "Analyze" to get AI-powered insights about this entry.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Entry Artwork -->
+    <div class="bg-white rounded-2xl border border-surface-200 p-8 mb-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+            <div>
+                <h2 class="text-lg font-semibold text-surface-900">Entry Artwork</h2>
+                <p class="text-xs text-surface-400 mt-1">AI-generated artwork based on your entry's mood and themes. Created locally.</p>
+                {% if ui_settings and ui_settings.artwork_enabled == 'false' %}
+                <p class="text-xs text-amber-500 mt-1">Artwork generation is disabled in settings.</p>
+                {% endif %}
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="toggleAdvancedControls()" id="advanced-toggle" class="text-xs text-surface-500 hover:text-surface-700 underline">
+                    Show Advanced
+                </button>
+            </div>
+        </div>
+        
+        <!-- Advanced Controls (Hidden by default) -->
+        <div id="advanced-controls" class="hidden mb-4 p-4 bg-surface-50 rounded-lg">
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="generateArtwork(true)" id="regen-btn" class="bg-surface-100 hover:bg-surface-200 text-surface-700 text-sm font-medium px-4 py-2 rounded-lg transition {% if ui_settings and ui_settings.artwork_enabled == 'false' %}opacity-50 cursor-not-allowed{% endif %}" {% if ui_settings and ui_settings.artwork_enabled == 'false' %}disabled{% endif %}>
+                    Regenerate with New Seed
+                </button>
+                <span class="text-xs text-surface-400">Creates a completely new variation</span>
+            </div>
+        </div>
+        
+        <div class="flex flex-col md:flex-row gap-6">
+            <div class="flex-1">
+                <div id="image-content" class="min-h-[200px]">
+                    {% if entry.artwork_path %}
+                    <img src="{{ entry.artwork_path }}" alt="Generated artwork" class="rounded-xl max-w-md" loading="lazy">
+                    {% else %}
+                    <div class="rounded-xl border border-dashed border-surface-200 p-6 text-sm text-surface-400">
+                        Artwork will be generated automatically when you analyze this entry.
+                    </div>
+                    {% endif %}
+                </div>
+                <p id="artwork-status" class="text-xs text-surface-400 mt-2"></p>
+            </div>
+            <div class="w-full md:w-64">
+                <div class="text-sm font-medium text-surface-700 mb-2">Upload your own</div>
+                <input type="file" id="artwork-upload" accept="image/*" class="w-full text-sm border border-surface-200 rounded-lg px-3 py-2">
+                <button onclick="uploadArtwork()" id="upload-btn" class="mt-2 w-full bg-surface-100 hover:bg-surface-200 text-surface-700 text-sm font-medium px-4 py-2 rounded-lg transition">Upload Image</button>
+                <p class="text-xs text-surface-400 mt-2">PNG, JPG, WEBP, GIF</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Similar Entries -->
+    {% if similar %}
+    <div class="mb-8">
+        <h2 class="text-lg font-semibold text-surface-900 mb-4">Related Entries</h2>
+        <div class="space-y-3">
+            {% for s in similar %}
+            <a href="/entry/{{ s.id }}" class="block bg-white rounded-xl border border-surface-200 p-4 hover:border-primary-300 transition">
+                <h3 class="font-medium text-surface-900">{{ s.summary or s.content[:60] ~ '...' }}</h3>
+                <p class="text-sm text-surface-500 mt-1">{{ s.content[:100] }}...</p>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const entryId = {{ entry.id | tojson }};
+    const entryContent = {{ entry.content | tojson }};
+
+    async function analyzeEntry() {
+        const btn = document.getElementById('analyze-btn');
+        const content = document.getElementById('analysis-content');
+        btn.textContent = 'Analyzing...';
+        btn.disabled = true;
+        if (window.AILoader) AILoader.show('Analyzing entry...');
+        try {
+            const resp = await fetch('/api/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: entryContent, entry_id: entryId })
+            });
+            const data = await resp.json();
+            content.textContent = data.analysis || 'No analysis returned.';
+        } catch (e) {
+            content.textContent = 'Analysis failed. Is Ollama running?';
+        }
+        if (window.AILoader) AILoader.hide();
+        btn.textContent = 'Re-analyze';
+        btn.disabled = false;
+    }
+
+    function toggleAdvancedControls() {
+        const controls = document.getElementById('advanced-controls');
+        const toggle = document.getElementById('advanced-toggle');
+        if (controls.classList.contains('hidden')) {
+            controls.classList.remove('hidden');
+            toggle.textContent = 'Hide Advanced';
+        } else {
+            controls.classList.add('hidden');
+            toggle.textContent = 'Show Advanced';
+        }
+    }
+
+    function setArtworkLoading(isLoading, label) {
+        const regenBtn = document.getElementById('regen-btn');
+        const uploadBtn = document.getElementById('upload-btn');
+        regenBtn.disabled = isLoading;
+        uploadBtn.disabled = isLoading;
+        if (isLoading) {
+            regenBtn.textContent = label || 'Regenerating...';
+        } else {
+            regenBtn.textContent = 'Regenerate with New Seed';
+        }
+    }
+
+    async function generateArtwork(regenerate) {
+        const container = document.getElementById('image-content');
+        const status = document.getElementById('artwork-status');
+        setArtworkLoading(true, 'Generating...');
+        status.textContent = 'Generating artwork...';
+        if (window.AILoader) AILoader.show('Generating artwork...');
+        try {
+            const resp = await fetch('/api/generate/artwork', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ entry_id: entryId, style: 'prism', regenerate })
+            });
+            const data = await resp.json();
+            if (data.image_url) {
+                container.innerHTML = '<img src="' + data.image_url + '" alt="Generated artwork" class="rounded-xl max-w-md" loading="lazy">';
+                status.textContent = 'Generated in ' + (data.generation_time || 0) + 's.';
+            } else {
+                status.textContent = data.error || 'Generation failed.';
+            }
+        } catch (e) {
+            status.textContent = 'Image generation failed.';
+        }
+        if (window.AILoader) AILoader.hide();
+        setArtworkLoading(false);
+    }
+
+    async function uploadArtwork() {
+        const input = document.getElementById('artwork-upload');
+        const status = document.getElementById('artwork-status');
+        const container = document.getElementById('image-content');
+        if (!input.files.length) {
+            status.textContent = 'Choose a file to upload.';
+            return;
+        }
+        const formData = new FormData();
+        formData.append('entry_id', entryId);
+        formData.append('image', input.files[0]);
+        setArtworkLoading(true, 'Uploading...');
+        status.textContent = 'Uploading image...';
+        try {
+            const resp = await fetch('/api/upload/artwork', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await resp.json();
+            if (data.image_url) {
+                container.innerHTML = '<img src="' + data.image_url + '" alt="Uploaded artwork" class="rounded-xl max-w-md" loading="lazy">';
+                status.textContent = 'Upload complete.';
+            } else {
+                status.textContent = data.error || 'Upload failed.';
+            }
+        } catch (e) {
+            status.textContent = 'Upload failed.';
+        }
+        setArtworkLoading(false);
+    }
+</script>
+{% endblock %}

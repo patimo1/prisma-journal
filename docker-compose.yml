@@ -1,0 +1,75 @@
+# Docker Compose for PrismA - Secure Journal App
+#
+# Usage:
+#   docker-compose up -d              # Start services
+#   docker-compose down               # Stop services
+#   docker-compose logs -f journal    # View logs
+#
+# Note: Ollama and Stable Diffusion run separately on the host
+# Configure their endpoints via environment variables
+
+version: '3.8'
+
+services:
+  journal:
+    build: .
+    container_name: journal-app
+    ports:
+      - "5000:5000"
+    volumes:
+      # Persist journal data
+      - journal_data:/app/app/database
+      # Persist uploaded/generated images
+      - journal_uploads:/app/app/static/uploads
+    environment:
+      # Flask settings
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - DEBUG_MODE=${DEBUG_MODE:-false}
+
+      # Database paths (inside container)
+      - DB_PATH=/app/app/database/journal.db
+      - CHROMA_PATH=/app/app/database/chroma
+
+      # Ollama settings (connect to host)
+      # Use host.docker.internal on Docker Desktop (Mac/Windows)
+      # Use 172.17.0.1 on Linux
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2}
+      - OLLAMA_TIMEOUT=${OLLAMA_TIMEOUT:-120}
+
+      # Whisper settings
+      - WHISPER_MODEL=${WHISPER_MODEL:-base}
+
+      # Stable Diffusion settings (connect to host)
+      - SD_ENABLED=${SD_ENABLED:-false}
+      - SD_ENDPOINT=${SD_ENDPOINT:-http://host.docker.internal:7860}
+      - SD_DEFAULT_STYLE=${SD_DEFAULT_STYLE:-minimalist abstract}
+
+      # Embedding settings
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
+      - CHROMA_COLLECTION=${CHROMA_COLLECTION:-journal_entries}
+
+      # UI settings
+      - COLOR_THEME=${COLOR_THEME:-ocean}
+      - MAX_ENTRY_LENGTH=${MAX_ENTRY_LENGTH:-50000}
+
+    restart: unless-stopped
+
+    # Resource limits (adjust based on your system)
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
+
+volumes:
+  journal_data:
+    name: journal_data
+  journal_uploads:
+    name: journal_uploads
+
+# Network configuration for host service access
+networks:
+  default:
+    driver: bridge

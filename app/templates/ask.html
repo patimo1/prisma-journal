@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block title %}Ask{% endblock %}
+
+{% block head %}
+<style>
+    .chat-thread { max-height: 60vh; overflow: auto; }
+    .chat-scroll { max-height: 60vh; overflow: auto; }
+    .chat-bubble { border-radius: 18px; }
+    .chat-bubble.user { background: #111827; color: #ffffff; }
+    .chat-bubble.assistant { background: #f3f4f6; color: #111827; }
+    .chat-empty { min-height: 45vh; }
+    .thread-active { background: #111827; color: #ffffff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="grid lg:grid-cols-[260px_1fr] gap-6">
+    <aside class="surface-plain p-4 h-fit">
+        <div class="flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-surface-800">Chats</h2>
+            <button id="new-thread" class="text-xs px-2 py-1 rounded-full border border-surface-200 text-surface-600 hover:text-surface-900">New</button>
+        </div>
+        <div class="mt-4 space-y-2 chat-thread" id="thread-list"></div>
+    </aside>
+
+    <section class="surface-panel p-6">
+        <div class="flex items-start justify-between gap-4">
+            <div>
+                <h1 class="text-xl font-semibold text-surface-900">Ask anything from your journal</h1>
+                <p class="text-xs text-surface-500 mt-1" id="chat-context">Global context: all entries</p>
+            </div>
+            <span class="text-[11px] px-2 py-1 rounded-full bg-surface-100 text-surface-500" id="persona-pill">Data Analyst</span>
+        </div>
+
+        <div id="chat-window" class="mt-6 space-y-4 chat-scroll"></div>
+
+        <div id="chat-empty" class="chat-empty flex items-center justify-center text-sm text-surface-400">Start a new conversation.</div>
+
+        <div class="mt-6 flex items-end gap-3">
+            <div class="flex-1">
+                <textarea id="chat-input" rows="2" placeholder="Type a question..." class="w-full resize-none rounded-2xl border border-surface-200 bg-white px-4 py-3 text-sm text-surface-800 focus:ring-2 focus:ring-surface-900 focus:border-surface-900 outline-none"></textarea>
+                <div class="flex items-center justify-between mt-2 text-[11px] text-surface-400">
+                    <span id="context-window">Context: {{ entry.summary if entry else 'all entries' }}</span>
+                    <span>Shift+Enter for new line</span>
+                </div>
+            </div>
+            <button id="chat-send" class="h-11 px-5 rounded-full bg-surface-900 text-white text-sm font-medium">Send</button>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const ENTRY_CONTEXT = {{ entry.id | tojson if entry else 'null' }};
+    const ENTRY_TITLE = {{ entry.summary | tojson if entry else 'null' }};
+    const STORAGE_KEY = 'journal_chat_threads';
+
+    const threadList = document.getElementById('thread-list');
+    const chatWindow = document.getElementById('chat-window');
+    const chatEmpty = document.getElementById('chat-empty');
+    const chatInput = document.getElementById('chat-input');
+    const chatSend = document.getElementById('chat-send');
+    const chatContext = document.getElementById('chat-context');
+    const personaPill = document.getElementById('persona-pill');
+    const contextWindow = document.getElementById('context-window');
+
+    let threads = loadThreads();
+    let activeThreadId = null;
+
+    function loadThreads() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function saveThreads() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(threads));
+    }
+
+    function createThread() {
+        const id = `thread_${Date.now()}`;
+        const mode = ENTRY_CONTEXT ? 'entry' : 'global';
+        const thread = {
+            id,
+            title: ENTRY_TITLE || 'New chat',
+            mode,
+            entry_id: ENTRY_CONTEXT,
+            created_at: new Date().toISOString(),
+            messages: [],
+        };
+        threads.unshift(thread);
+        saveThreads();
+        return thread;
+    }
+
+    function setActiveThread(threadId) {
+        activeThreadId = threadId;
+        renderThreads();
+        renderMessages();
+    }
+
+    function renderThreads() {
+        threadList.innerHTML = threads.map(thread => {
+            const isActive = thread.id === activeThreadId;
+            return `
+                <button class="w-full text-left px-3 py-2 rounded-xl text-sm ${isActive ? 'thread-active' : 'text-surface-600 hover:bg-surface-100'}" data-thread="${thread.id}">
+                    <div class="font-medium truncate">${thread.title || 'Untitled chat'}</div>
+                    <div class="text-[11px] opacity-70">${thread.mode === 'entry' ? 'Entry focus' : 'Global'}</div>
+                </button>
+            `;
+        }).join('');
+
+        threadList.querySelectorAll('[data-thread]').forEach(btn => {
+            btn.addEventListener('click', () => setActiveThread(btn.dataset.thread));
+        });
+    }
+
+    function renderMessages() {
+        const thread = threads.find(t => t.id === activeThreadId);
+        if (!thread) {
+            chatWindow.innerHTML = '';
+            chatEmpty.classList.remove('hidden');
+            return;
+        }
+        chatEmpty.classList.add('hidden');
+        chatWindow.innerHTML = thread.messages.map(msg => {
+            const isUser = msg.role === 'user';
+            return `
+                <div class="flex ${isUser ? 'justify-end' : 'justify-start'}">
+                    <div class="chat-bubble ${isUser ? 'user' : 'assistant'} max-w-[70%] px-4 py-3 text-sm whitespace-pre-wrap">
+                        ${msg.content}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+
+        if (thread.mode === 'entry') {
+            chatContext.textContent = 'Entry focus: discussing a single entry';
+            personaPill.textContent = 'Therapist';
+            contextWindow.textContent = `Context: ${ENTRY_TITLE || 'entry'}`;
+        } else {
+            chatContext.textContent = 'Global context: all entries';
+            personaPill.textContent = 'Data Analyst';
+            contextWindow.textContent = 'Context: all entries';
+        }
+    }
+
+    function updateThreadTitle(thread, message) {
+        if (thread.title && thread.title !== 'New chat') return;
+        thread.title = message.slice(0, 40);
+    }
+
+    async function sendMessage() {
+        const content = chatInput.value.trim();
+        if (!content) return;
+        let thread = threads.find(t => t.id === activeThreadId);
+        if (!thread) {
+            thread = createThread();
+            activeThreadId = thread.id;
+        }
+
+        thread.messages.push({ role: 'user', content, timestamp: new Date().toISOString() });
+        updateThreadTitle(thread, content);
+        saveThreads();
+        renderThreads();
+        renderMessages();
+        chatInput.value = '';
+
+        AILoader.show('Thinking...');
+        try {
+            const resp = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mode: thread.mode,
+                    entry_id: thread.entry_id,
+                    query: content,
+                    messages: thread.messages,
+                })
+            });
+            const data = await resp.json();
+            const reply = data.reply || 'No response.';
+            thread.messages.push({ role: 'assistant', content: reply, timestamp: new Date().toISOString() });
+            saveThreads();
+            renderMessages();
+        } catch (e) {
+            thread.messages.push({ role: 'assistant', content: 'Something went wrong. Please try again.', timestamp: new Date().toISOString() });
+            saveThreads();
+            renderMessages();
+        } finally {
+            AILoader.hide();
+        }
+    }
+
+    document.getElementById('new-thread').addEventListener('click', () => {
+        const thread = createThread();
+        setActiveThread(thread.id);
+    });
+
+    chatSend.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    if (ENTRY_CONTEXT) {
+        const existing = threads.find(t => t.entry_id === ENTRY_CONTEXT);
+        if (existing) {
+            setActiveThread(existing.id);
+        } else {
+            const thread = createThread();
+            setActiveThread(thread.id);
+        }
+    } else if (threads.length) {
+        setActiveThread(threads[0].id);
+    } else {
+        renderThreads();
+    }
+</script>
+{% endblock %}

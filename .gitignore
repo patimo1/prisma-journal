@@ -1,0 +1,14 @@
+.env
+__pycache__/
+*.pyc
+venv/
+.venv/
+app/database/journal.db
+app/database/journal.db-wal
+app/database/journal.db-shm
+app/database/chroma/
+app/static/uploads/
+*.egg-info/
+dist/
+build/
+.claude/

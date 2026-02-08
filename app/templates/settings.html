@@ -1,0 +1,931 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+
+{% block head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-surface-900 dark:text-white">Settings</h1>
+            <p class="text-sm text-surface-500 dark:text-surface-400">Personalize your journaling experience.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <button id="settings-export" class="text-xs font-medium px-3 py-2 rounded-lg border border-surface-200 dark:border-surface-600">Export Settings</button>
+            <label class="text-xs font-medium px-3 py-2 rounded-lg border border-surface-200 dark:border-surface-600 cursor-pointer">
+                <input type="file" id="settings-import" accept="application/json" class="hidden">
+                Import Settings
+            </label>
+        </div>
+    </div>
+
+    {% if settings_message %}
+    <div class="bg-green-50 border border-green-200 text-green-700 rounded-lg p-3 text-sm">{{ settings_message }}</div>
+    {% endif %}
+    {% if settings_errors %}
+    <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
+        <p class="font-semibold mb-2">Please fix the following:</p>
+        <ul class="list-disc list-inside space-y-1">
+            {% for err in settings_errors %}
+            <li>{{ err }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    {% if restart_warnings %}
+    <div class="bg-amber-50 border border-amber-200 text-amber-700 rounded-lg p-3 text-sm">
+        <p class="font-semibold mb-2">Restart required</p>
+        <ul class="list-disc list-inside space-y-1">
+            {% for warn in restart_warnings %}
+            <li>{{ warn }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- Service Status -->
+    <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">Service Status</h2>
+            <button onclick="refreshServices()" id="refresh-btn" class="text-xs text-primary-600 hover:text-primary-700 font-medium">Refresh</button>
+        </div>
+        <div class="space-y-3" id="service-list">
+            {% for svc in services %}
+            <div class="flex items-start gap-3">
+                <span class="mt-0.5 w-2 h-2 rounded-full shrink-0 {% if svc.available %}bg-green-500{% else %}bg-red-400{% endif %}"></span>
+                <div>
+                    <p class="text-sm font-medium text-surface-800 dark:text-surface-200">{{ svc.name }}</p>
+                    <p class="text-xs text-surface-500 dark:text-surface-400">{{ svc.message }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <form method="POST" id="settings-form" class="space-y-8">
+        <input type="hidden" name="action" value="settings">
+
+        <!-- Account & Profile -->
+        <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6 space-y-5">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="text-lg font-semibold text-surface-900 dark:text-white">Account &amp; Profile</h2>
+                <span class="text-xs text-surface-400">Local-only, single-user mode</span>
+            </div>
+            <div>
+                <label for="username" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Username</label>
+                <input type="text" id="username" name="username"
+                       value="{{ settings.username }}"
+                       placeholder="future multi-user"
+                       class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
+                <p class="text-xs text-surface-400 mt-1">Stored for upcoming multi-user support.</p>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div class="bg-surface-50 dark:bg-surface-900/30 rounded-xl p-4 border border-surface-200 dark:border-surface-700">
+                    <p class="text-xs text-surface-400 mb-3">Data export</p>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" data-export-format="json" class="text-xs font-medium px-3 py-2 rounded-lg border border-surface-200 dark:border-surface-600">JSON</button>
+                        <button type="button" data-export-format="markdown" class="text-xs font-medium px-3 py-2 rounded-lg border border-surface-200 dark:border-surface-600">Markdown</button>
+                        <button type="button" data-export-format="pdf" class="text-xs font-medium px-3 py-2 rounded-lg border border-surface-200 dark:border-surface-600">PDF</button>
+                    </div>
+                    <p class="text-[11px] text-surface-400 mt-2">Exports all entries with tags and emotions.</p>
+                </div>
+                <div class="bg-surface-50 dark:bg-surface-900/30 rounded-xl p-4 border border-surface-200 dark:border-surface-700">
+                    <p class="text-xs text-surface-400 mb-3">Delete all data</p>
+                    <button type="button" id="delete-all-data"
+                            class="text-xs font-medium px-3 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+                        Delete Everything
+                    </button>
+                    <p class="text-[11px] text-surface-400 mt-2">Deletes entries, tags, emotions, and embeddings.</p>
+                </div>
+            </div>
+            <div class="mt-4">
+                <label for="data_retention" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Data retention period</label>
+                <select id="data_retention" name="data_retention"
+                        class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
+                    <option value="forever" {% if settings.data_retention == 'forever' or not settings.data_retention %}selected{% endif %}>Keep all entries forever</option>
+                    <option value="2years" {% if settings.data_retention == '2years' %}selected{% endif %}>Keep entries for 2 years</option>
+                    <option value="1year" {% if settings.data_retention == '1year' %}selected{% endif %}>Keep entries for 1 year</option>
+                </select>
+                <p class="text-[11px] text-surface-400 mt-1">Entries older than this will be automatically deleted. Cleanup runs on app startup.</p>
+            </div>
+        </div>
+
+        <!-- Writing Preferences -->
+        <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6 space-y-5">
+            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">Writing Preferences</h2>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label for="default_entry_type" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Default entry type</label>
+                    <select id="default_entry_type" name="default_entry_type"
+                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
+                        <option value="blank" {% if settings.default_entry_type == 'blank' %}selected{% endif %}>Blank entry</option>
+                        <option value="framework" {% if settings.default_entry_type == 'framework' %}selected{% endif %}>Framework</option>
+                        <option value="prompt" {% if settings.default_entry_type == 'prompt' %}selected{% endif %}>Prompt</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="auto_save_interval" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Auto-save interval</label>
+                    <select id="auto_save_interval" name="auto_save_interval"
+                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
+                        <option value="15" {% if settings.auto_save_interval == '15' %}selected{% endif %}>Every 15 seconds</option>
+                        <option value="30" {% if settings.auto_save_interval == '30' %}selected{% endif %}>Every 30 seconds</option>
+                        <option value="60" {% if settings.auto_save_interval == '60' %}selected{% endif %}>Every 60 seconds</option>
+                        <option value="disabled" {% if settings.auto_save_interval == 'disabled' %}selected{% endif %}>Disabled</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI & Analysis -->
+        <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6 space-y-5">
+            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">AI &amp; Analysis</h2>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label for="ollama_model" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Ollama model</label>
+                    {% if ollama_models %}
+                    <select id="ollama_model" name="ollama_model"
+                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
+                        {% if settings.ollama_model and settings.ollama_model not in ollama_models %}
+                        <option value="{{ settings.ollama_model }}" selected>{{ settings.ollama_model }} (custom)</option>
+                        {% endif %}
+                        {% for model in ollama_models %}
+                        <option value="{{ model }}" {% if settings.ollama_model == model %}selected{% endif %}>{{ model }}</option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                    <input type="text" id="ollama_model" name="ollama_model"
+                           value="{{ settings.ollama_model }}"
+                           placeholder="llama3.2"
+                           class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
+                    {% endif %}
+                    <p class="text-xs text-surface-400 mt-1">Pull models with <code>ollama pull &lt;model&gt;</code></p>
+                </div>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <label class="flex items-center justify-between border border-surface-200 dark:border-surface-700 rounded-lg px-4 py-3">
+                    <span class="text-sm text-surface-700 dark:text-surface-300">Emotion analysis</span>
+                    <input type="checkbox" name="emotion_analysis_enabled" value="true" {% if settings.emotion_analysis_enabled == 'true' %}checked{% endif %} class="rounded border-surface-300 text-primary-600 focus:ring-primary-500">
+                </label>
+                <label class="flex items-center justify-between border border-surface-200 dark:border-surface-700 rounded-lg px-4 py-3">
+                    <span class="text-sm text-surface-700 dark:text-surface-300">Go Deeper suggestions</span>
+                    <input type="checkbox" name="go_deeper_enabled" value="true" {% if settings.go_deeper_enabled == 'true' %}checked{% endif %} class="rounded border-surface-300 text-primary-600 focus:ring-primary-500">
+                </label>
+                <label class="flex items-center justify-between border border-surface-200 dark:border-surface-700 rounded-lg px-4 py-3">
+                    <span class="text-sm text-surface-700 dark:text-surface-300">Past Memories sidebar</span>
+                    <input type="checkbox" name="past_memories_enabled" value="true" {% if settings.past_memories_enabled == 'true' %}checked{% endif %} class="rounded border-surface-300 text-primary-600 focus:ring-primary-500">
+                </label>
+                <label class="flex items-center justify-between border border-surface-200 dark:border-surface-700 rounded-lg px-4 py-3">
+                    <span class="text-sm text-surface-700 dark:text-surface-300">Artwork generation</span>
+                    <input type="checkbox" name="artwork_enabled" value="true" {% if settings.artwork_enabled == 'true' %}checked{% endif %} class="rounded border-surface-300 text-primary-600 focus:ring-primary-500">
+                </label>
+            </div>
+
+        </div>
+
+        <!-- Voice & Transcription -->
+        <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6 space-y-5">
+            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">Voice &amp; Transcription</h2>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label for="whisper_model" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Whisper model size</label>
+                    <select id="whisper_model" name="whisper_model"
+                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
+                        {% for size in whisper_options %}
+                        <option value="{{ size }}" {% if settings.whisper_model == size %}selected{% endif %}>{{ size }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="voice_language" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Voice language preference</label>
+                    <select id="voice_language" name="voice_language"
+                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
+                        <option value="auto" {% if settings.voice_language == 'auto' %}selected{% endif %}>Auto-detect</option>
+                        <option value="en" {% if settings.voice_language == 'en' %}selected{% endif %}>English</option>
+                        <option value="es" {% if settings.voice_language == 'es' %}selected{% endif %}>Spanish</option>
+                        <option value="fr" {% if settings.voice_language == 'fr' %}selected{% endif %}>French</option>
+                        <option value="de" {% if settings.voice_language == 'de' %}selected{% endif %}>German</option>
+                        <option value="ja" {% if settings.voice_language == 'ja' %}selected{% endif %}>Japanese</option>
+                    </select>
+                </div>
+            </div>
+            <label class="flex items-center justify-between border border-surface-200 dark:border-surface-700 rounded-lg px-4 py-3">
+                <span class="text-sm text-surface-700 dark:text-surface-300">Auto-start transcription editing</span>
+                <input type="checkbox" name="voice_auto_edit" value="true" {% if settings.voice_auto_edit == 'true' %}checked{% endif %} class="rounded border-surface-300 text-primary-600 focus:ring-primary-500">
+            </label>
+        </div>
+
+        <!-- Appearance -->
+        <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6 space-y-5">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="text-lg font-semibold text-surface-900 dark:text-white">Appearance</h2>
+                <span class="text-xs text-surface-400">Live preview updates instantly</span>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label for="theme_mode" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Theme</label>
+                    <select id="theme_mode" name="theme_mode"
+                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
+                        <option value="light" {% if settings.theme_mode == 'light' %}selected{% endif %}>Light</option>
+                        <option value="dark" {% if settings.theme_mode == 'dark' %}selected{% endif %}>Dark</option>
+                        <option value="auto" {% if settings.theme_mode == 'auto' %}selected{% endif %}>Auto</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="font_size" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Font size</label>
+                    <select id="font_size" name="font_size"
+                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
+                        <option value="small" {% if settings.font_size == 'small' %}selected{% endif %}>Small</option>
+                        <option value="medium" {% if settings.font_size == 'medium' %}selected{% endif %}>Medium</option>
+                        <option value="large" {% if settings.font_size == 'large' %}selected{% endif %}>Large</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="spacing_density" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Spacing</label>
+                    <select id="spacing_density" name="spacing_density"
+                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
+                        <option value="compact" {% if settings.spacing_density == 'compact' %}selected{% endif %}>Compact</option>
+                        <option value="comfortable" {% if settings.spacing_density == 'comfortable' %}selected{% endif %}>Comfortable</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="journal_view" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Journal feed view</label>
+                    <select id="journal_view" name="journal_view"
+                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
+                        <option value="grid" {% if settings.journal_view == 'grid' %}selected{% endif %}>Grid</option>
+                        <option value="list" {% if settings.journal_view == 'list' %}selected{% endif %}>List</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">Color scheme</label>
+                <div class="flex flex-wrap gap-3" id="color-theme-picker">
+                    {% for theme in theme_options %}
+                    <label class="cursor-pointer">
+                        <input type="radio" name="color_theme" value="{{ theme }}" class="hidden peer" {% if settings.color_theme == theme %}checked{% endif %}>
+                        <span class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm border border-surface-200 dark:border-surface-600 bg-white dark:bg-surface-700 peer-checked:ring-2 peer-checked:ring-primary-500 peer-checked:border-primary-400 hover:bg-surface-50 dark:hover:bg-surface-600 transition capitalize">
+                            <span class="w-2.5 h-2.5 rounded-full" data-theme-swatch="{{ theme }}"></span>
+                            {{ theme }}
+                        </span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <div id="appearance-preview" class="rounded-xl border border-surface-200 dark:border-surface-700 p-4 bg-surface-50 dark:bg-surface-900/30">
+                <p class="text-xs text-surface-400 mb-2">Preview</p>
+                <div class="rounded-lg border border-surface-200 dark:border-surface-700 p-4 bg-white dark:bg-surface-800">
+                    <h3 class="font-semibold text-surface-900 dark:text-white">Evening Reflection</h3>
+                    <p class="text-sm text-surface-500 dark:text-surface-400 mt-1">A quick preview of spacing, font size, and theme.</p>
+                    <button class="mt-3 text-xs font-medium px-3 py-2 rounded-lg bg-primary-600 text-white">Primary Action</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Privacy & Data -->
+        <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6 space-y-5">
+            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">Privacy &amp; Data</h2>
+            <label class="flex items-center justify-between border border-surface-200 dark:border-surface-700 rounded-lg px-4 py-3">
+                <span class="text-sm text-surface-700 dark:text-surface-300">Local-only mode (disable external APIs)</span>
+                <input type="checkbox" name="local_only_mode" value="true" {% if settings.local_only_mode == 'true' %}checked{% endif %} class="rounded border-surface-300 text-primary-600 focus:ring-primary-500">
+            </label>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label for="backup_location" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Automatic backups location</label>
+                    <input type="text" id="backup_location" name="backup_location"
+                           value="{{ settings.backup_location }}"
+                           placeholder="C:\\Users\\you\\Documents\\Journal Backups"
+                           class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
+                </div>
+                <div>
+                    <label for="retention_period" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Data retention period</label>
+                    <select id="retention_period" name="retention_period"
+                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
+                        <option value="all" {% if settings.retention_period == 'all' %}selected{% endif %}>Keep all</option>
+                        <option value="1_year" {% if settings.retention_period == '1_year' %}selected{% endif %}>1 year</option>
+                        <option value="2_years" {% if settings.retention_period == '2_years' %}selected{% endif %}>2 years</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced -->
+        <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6 space-y-5">
+            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">Advanced</h2>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label for="db_path" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Database path</label>
+                    <input type="text" id="db_path" name="db_path" value="{{ settings.db_path }}"
+                           class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
+                </div>
+                <div>
+                    <label for="chroma_path" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">ChromaDB path</label>
+                    <input type="text" id="chroma_path" name="chroma_path" value="{{ settings.chroma_path }}"
+                           class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
+                </div>
+                <div>
+                    <label for="model_cache_location" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Model cache location</label>
+                    <input type="text" id="model_cache_location" name="model_cache_location" value="{{ settings.model_cache_location }}"
+                           class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
+                </div>
+                <div>
+                    <label for="ollama_base_url" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Ollama endpoint</label>
+                    <input type="text" id="ollama_base_url" name="ollama_base_url" value="{{ settings.ollama_base_url }}"
+                           class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
+                </div>
+                <div>
+                    <label for="sd_endpoint" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Stable Diffusion endpoint</label>
+                    <input type="text" id="sd_endpoint" name="sd_endpoint" value="{{ settings.sd_endpoint }}"
+                           class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
+                </div>
+                <label class="flex items-center justify-between border border-surface-200 dark:border-surface-700 rounded-lg px-4 py-3 sm:col-span-2">
+                    <span class="text-sm text-surface-700 dark:text-surface-300">Debug mode</span>
+                    <input type="checkbox" name="debug_mode" value="true" {% if settings.debug_mode == 'true' %}checked{% endif %} class="rounded border-surface-300 text-primary-600 focus:ring-primary-500">
+                </label>
+            </div>
+            <p class="text-xs text-surface-400">Advanced changes require an app restart.</p>
+        </div>
+
+        <div class="flex items-center justify-between">
+            <button type="submit" class="bg-primary-600 text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-primary-700 transition">Save Settings</button>
+        </div>
+    </form>
+
+    <!-- Framework Builder -->
+    <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6 space-y-5">
+        <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">Custom Frameworks</h2>
+            <span class="text-xs text-surface-400">{{ frameworks | length }} total</span>
+        </div>
+
+        {% if framework_message %}
+        <div class="bg-green-50 border border-green-200 text-green-700 rounded-lg p-3 text-sm">{{ framework_message }}</div>
+        {% endif %}
+        {% if framework_error %}
+        <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">{{ framework_error }}</div>
+        {% endif %}
+
+        <form method="POST" class="space-y-4">
+            <input type="hidden" name="action" value="add_framework">
+            <div class="grid gap-4 md:grid-cols-2">
+                <div>
+                    <label for="framework_name" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Framework Name</label>
+                    <input type="text" id="framework_name" name="framework_name"
+                           placeholder="Relationship Reset"
+                           class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
+                </div>
+                <div>
+                    <label for="framework_category" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Category</label>
+                    <input type="text" id="framework_category" name="framework_category"
+                           placeholder="relationships"
+                           class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
+                </div>
+            </div>
+            <div>
+                <label for="framework_description" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Description</label>
+                <input type="text" id="framework_description" name="framework_description"
+                       placeholder="A gentle reset for hard conversations."
+                       class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
+            </div>
+            <div>
+                <label for="framework_questions" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Questions (one per line)</label>
+                <textarea id="framework_questions" name="framework_questions" rows="5"
+                          placeholder="What happened?\nWhat do I feel?\nWhat do I need?"
+                          class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"></textarea>
+                <p class="text-xs text-surface-400 mt-1">We will convert each line into a framework question with placeholders.</p>
+            </div>
+            <button type="submit" class="bg-primary-600 text-white font-semibold px-5 py-2.5 rounded-lg hover:bg-primary-700 transition">Save Framework</button>
+        </form>
+
+        <div class="pt-2">
+            <h3 class="text-sm font-semibold text-surface-900 dark:text-white mb-3">Available Frameworks</h3>
+            <div class="space-y-2">
+                {% for fw in frameworks %}
+                <div class="flex items-center justify-between rounded-lg border border-surface-200 dark:border-surface-700 px-3 py-2">
+                    <div>
+                        <p class="text-sm font-medium text-surface-800 dark:text-surface-200">{{ fw.name }}</p>
+                        <p class="text-xs text-surface-500 dark:text-surface-400">{{ fw.category or 'general' }} · {{ fw.questions | length }} questions</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- System Prompts Editor -->
+    <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6 space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-lg font-semibold text-surface-900 dark:text-white">AI System Prompts</h2>
+                <p class="text-sm text-surface-500 dark:text-surface-400 mt-0.5">
+                    Customize AI instructions organized by where they are used in the app. 
+                    <span class="hidden sm:inline">Click a category to expand and edit prompts. Changes are saved individually.</span>
+                </p>
+            </div>
+            <span class="text-xs text-surface-400">{{ system_prompts | length }} prompts</span>
+        </div>
+
+        <!-- Quick Reference Legend -->
+        <div class="bg-surface-50 dark:bg-surface-900/30 rounded-lg p-3 border border-surface-200 dark:border-surface-700">
+            <p class="text-xs text-surface-500 dark:text-surface-400 mb-2 font-medium">Quick Reference:</p>
+            <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-surface-500 dark:text-surface-400">
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-primary-500"></span> 📓 Entry: Analysis, emotions, artwork</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500"></span> 🏠 Dashboard: Daily questions & suggestions</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-500"></span> 📊 Insights: Pattern analysis</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-orange-500"></span> 💬 Chat: AI personas</span>
+            </div>
+        </div>
+
+        <!-- Toast notification -->
+        <div id="prompt-toast" class="hidden fixed bottom-6 right-6 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all duration-300 transform translate-y-2 opacity-0"></div>
+
+        {% for category, keys in prompt_categories.items() %}
+        {% set category_prompts = [] %}
+        {% for sp in system_prompts %}
+            {% if sp.key in keys %}
+                {% if category_prompts.append(sp) %}{% endif %}
+            {% endif %}
+        {% endfor %}
+        {% if category_prompts %}
+        <div class="border border-surface-200 dark:border-surface-700 rounded-xl overflow-hidden">
+            <!-- Category header (just a label, not collapsible) -->
+            <div class="w-full flex items-center justify-between px-4 py-3 bg-surface-50 dark:bg-surface-900/30">
+                <div class="flex items-start gap-2 text-left">
+                    <div class="flex-1">
+                        <span class="text-sm font-semibold text-surface-800 dark:text-surface-200">{{ category }}</span>
+                        {% if prompt_category_descriptions and prompt_category_descriptions.get(category) %}
+                        <p class="text-xs text-surface-500 dark:text-surface-400 mt-0.5 max-w-xl">{{ prompt_category_descriptions.get(category) }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <span class="text-xs text-surface-400 shrink-0 ml-4">{{ category_prompts | length }} prompt{{ 's' if category_prompts | length != 1 else '' }}</span>
+            </div>
+
+            <!-- Category content - each prompt is individually collapsible -->
+            <div class="border-t border-surface-200 dark:border-surface-700">
+                {% for sp in category_prompts %}
+                <div class="border-b border-surface-100 dark:border-surface-800 last:border-b-0" data-prompt-key="{{ sp.key }}">
+                    <!-- Prompt header (collapsible) -->
+                    <button type="button"
+                            class="prompt-toggle w-full flex items-center justify-between px-4 py-3 hover:bg-surface-50 dark:hover:bg-surface-700/30 transition text-left">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-surface-400 transition-transform duration-200 prompt-chevron mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                            </svg>
+                            <div>
+                                <span class="text-sm font-medium text-surface-800 dark:text-surface-200">{{ sp.key | replace('_', ' ') | title }}</span>
+                                <p class="text-xs text-surface-500 dark:text-surface-400">{{ sp.description or '' }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0 ml-4">
+                            <span class="prompt-dirty-badge hidden text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">Unsaved</span>
+                            {% if sp.last_updated %}
+                            <span class="text-[10px] text-surface-400">{{ sp.last_updated[:10] }}</span>
+                            {% endif %}
+                        </div>
+                    </button>
+
+                    <!-- Prompt content (hidden by default) -->
+                    <div class="prompt-content hidden px-4 pb-4 space-y-3">
+                        {% if prompt_placeholders.get(sp.key) %}
+                        <div class="flex flex-wrap gap-1">
+                            {% for ph in prompt_placeholders[sp.key] %}
+                            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-700">{{"{"}}{{ ph }}{{"}"}}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <textarea
+                            class="prompt-textarea w-full rounded-lg border border-surface-300 dark:border-surface-600 px-3 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 text-sm font-mono leading-relaxed focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-none overflow-hidden"
+                            data-key="{{ sp.key }}"
+                            data-original="{{ sp.prompt_text | e }}"
+                            rows="3"
+                        >{{ sp.prompt_text }}</textarea>
+
+                        <div class="flex items-center gap-2">
+                            <button type="button"
+                                    data-save-prompt="{{ sp.key }}"
+                                    class="prompt-save-btn text-xs font-medium px-3 py-1.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                                    disabled>
+                                Save
+                            </button>
+                            <button type="button"
+                                    data-reset-prompt="{{ sp.key }}"
+                                    class="text-xs font-medium px-3 py-1.5 rounded-lg border border-surface-200 dark:border-surface-600 text-surface-600 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700 transition">
+                                Reset to Default
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function refreshServices() {
+        const btn = document.getElementById('refresh-btn');
+        btn.textContent = 'Checking...';
+        try {
+            const resp = await fetch('/api/services/refresh', { method: 'POST' });
+            const data = await resp.json();
+            const list = document.getElementById('service-list');
+            list.innerHTML = data.services.map(svc => `
+                <div class="flex items-start gap-3">
+                    <span class="mt-0.5 w-2 h-2 rounded-full shrink-0 ${svc.available ? 'bg-green-500' : 'bg-red-400'}"></span>
+                    <div>
+                        <p class="text-sm font-medium text-surface-800 dark:text-surface-200">${svc.name}</p>
+                        <p class="text-xs text-surface-500 dark:text-surface-400">${svc.message}</p>
+                    </div>
+                </div>
+            `).join('');
+        } catch (e) {
+            alert('Failed to refresh service status.');
+        }
+        btn.textContent = 'Refresh';
+    }
+
+    // Data export
+    document.querySelectorAll('[data-export-format]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const format = btn.getAttribute('data-export-format');
+            if (format === 'pdf') {
+                btn.textContent = 'Generating...';
+                btn.disabled = true;
+                try {
+                    const resp = await fetch('/api/data/export?format=json');
+                    const data = await resp.json();
+                    const entries = data.entries || [];
+
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+                    const pageWidth = doc.internal.pageSize.getWidth();
+                    const pageHeight = doc.internal.pageSize.getHeight();
+                    const margin = 50;
+                    const lineHeight = 14;
+                    const contentWidth = pageWidth - (margin * 2);
+                    let y = margin;
+
+                    // Title page
+                    doc.setFontSize(24);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Journal Export', pageWidth / 2, 200, { align: 'center' });
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(`${entries.length} entries`, pageWidth / 2, 230, { align: 'center' });
+                    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 250, { align: 'center' });
+
+                    // Entry pages
+                    entries.forEach((entry, idx) => {
+                        doc.addPage();
+                        y = margin;
+
+                        // Entry header
+                        doc.setFontSize(14);
+                        doc.setFont('helvetica', 'bold');
+                        const title = entry.summary || 'Untitled Entry';
+                        const titleLines = doc.splitTextToSize(title, contentWidth);
+                        doc.text(titleLines, margin, y);
+                        y += titleLines.length * 18;
+
+                        // Date and metadata
+                        doc.setFontSize(10);
+                        doc.setFont('helvetica', 'normal');
+                        doc.setTextColor(100);
+                        const meta = [
+                            entry.created_at ? entry.created_at.substring(0, 10) : '',
+                            entry.word_count ? `${entry.word_count} words` : '',
+                            entry.entry_type || ''
+                        ].filter(Boolean).join(' • ');
+                        doc.text(meta, margin, y);
+                        y += 20;
+
+                        // Emotions
+                        if (entry.emotions && entry.emotions.length) {
+                            const emoText = 'Emotions: ' + entry.emotions.map(e => `${e.emotion} (${e.intensity})`).join(', ');
+                            doc.text(emoText, margin, y);
+                            y += 16;
+                        }
+
+                        // Tags
+                        if (entry.tags && entry.tags.length) {
+                            doc.text('Tags: ' + entry.tags.join(', '), margin, y);
+                            y += 16;
+                        }
+
+                        y += 10;
+                        doc.setTextColor(0);
+
+                        // Content
+                        doc.setFontSize(11);
+                        const content = entry.content || '';
+                        const contentLines = doc.splitTextToSize(content, contentWidth);
+
+                        contentLines.forEach(line => {
+                            if (y > pageHeight - margin) {
+                                doc.addPage();
+                                y = margin;
+                            }
+                            doc.text(line, margin, y);
+                            y += lineHeight;
+                        });
+
+                        // Page number
+                        doc.setFontSize(9);
+                        doc.setTextColor(150);
+                        doc.text(`Entry ${idx + 1} of ${entries.length}`, pageWidth / 2, pageHeight - 30, { align: 'center' });
+                        doc.setTextColor(0);
+                    });
+
+                    doc.save('journal_export.pdf');
+                } catch (e) {
+                    alert('PDF generation failed: ' + e.message);
+                }
+                btn.textContent = 'PDF';
+                btn.disabled = false;
+                return;
+            }
+            window.location.href = `/api/data/export?format=${format}`;
+        });
+    });
+
+    // Delete all data
+    const deleteBtn = document.getElementById('delete-all-data');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', async () => {
+            const confirmText = prompt('Type DELETE to remove all journal data.');
+            if (confirmText !== 'DELETE') return;
+            const resp = await fetch('/api/data/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ confirm: confirmText })
+            });
+            if (resp.ok) {
+                window.location.reload();
+            } else {
+                alert('Delete failed.');
+            }
+        });
+    }
+
+    // Settings export/import
+    const settingsExport = document.getElementById('settings-export');
+    if (settingsExport) {
+        settingsExport.addEventListener('click', () => {
+            window.location.href = '/api/settings/export';
+        });
+    }
+    const settingsImport = document.getElementById('settings-import');
+    if (settingsImport) {
+        settingsImport.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('settings_file', file);
+            const resp = await fetch('/api/settings/import', { method: 'POST', body: formData });
+            const data = await resp.json();
+            if (!resp.ok) {
+                alert(data.error || 'Import failed.');
+                return;
+            }
+            if (data.restart_warnings && data.restart_warnings.length) {
+                alert(data.restart_warnings.join('\n'));
+            }
+            window.location.reload();
+        });
+    }
+
+    // Live preview for appearance
+    const themeMode = document.getElementById('theme_mode');
+    const fontSize = document.getElementById('font_size');
+    const spacingDensity = document.getElementById('spacing_density');
+    const colorThemes = document.querySelectorAll('input[name="color_theme"]');
+    const preview = document.getElementById('appearance-preview');
+
+    function applyThemeMode(value) {
+        if (value === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else if (value === 'light') {
+            document.documentElement.classList.remove('dark');
+        } else {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+    }
+
+    function applyFontSize(value) {
+        document.body.classList.remove('ui-font-small', 'ui-font-medium', 'ui-font-large');
+        document.body.classList.add(`ui-font-${value}`);
+    }
+
+    function applySpacing(value) {
+        document.body.classList.remove('ui-compact', 'ui-comfortable');
+        document.body.classList.add(value === 'compact' ? 'ui-compact' : 'ui-comfortable');
+    }
+
+    if (themeMode) themeMode.addEventListener('change', (e) => applyThemeMode(e.target.value));
+    if (fontSize) fontSize.addEventListener('change', (e) => applyFontSize(e.target.value));
+    if (spacingDensity) spacingDensity.addEventListener('change', (e) => applySpacing(e.target.value));
+
+    const swatchColors = {
+        ocean: '#0ea5e9',
+        forest: '#22c55e',
+        sunset: '#f97316',
+        lavender: '#a855f7',
+        slate: '#64748b',
+        sand: '#f59e0b',
+        berry: '#f43f5e',
+    };
+    document.querySelectorAll('[data-theme-swatch]').forEach(el => {
+        const theme = el.getAttribute('data-theme-swatch');
+        el.style.backgroundColor = swatchColors[theme] || '#94a3b8';
+    });
+
+    if (preview && colorThemes.length) {
+        colorThemes.forEach(input => {
+            input.addEventListener('change', () => {
+                const theme = document.querySelector('input[name="color_theme"]:checked')?.value || 'ocean';
+                const button = preview.querySelector('button');
+                if (button) {
+                    button.style.backgroundColor = swatchColors[theme] || '#0ea5e9';
+                }
+            });
+        });
+    }
+
+    // Initial preview sync
+    if (themeMode) applyThemeMode(themeMode.value);
+    if (fontSize) applyFontSize(fontSize.value);
+    if (spacingDensity) applySpacing(spacingDensity.value);
+    if (preview) {
+        const theme = document.querySelector('input[name="color_theme"]:checked')?.value || 'ocean';
+        const button = preview.querySelector('button');
+        if (button) {
+            button.style.backgroundColor = swatchColors[theme] || '#0ea5e9';
+        }
+    }
+
+</script>
+<script>
+    // --- System Prompts Editor ---
+    (function initSystemPrompts() {
+        function togglePrompt(btn) {
+            var content = btn.nextElementSibling;
+            var chevron = btn.querySelector('.prompt-chevron');
+            var isHidden = content.classList.contains('hidden');
+            content.classList.toggle('hidden');
+            if (chevron) {
+                chevron.style.transform = isHidden ? 'rotate(90deg)' : '';
+            }
+        }
+
+        function showToast(message, type) {
+            var toast = document.getElementById('prompt-toast');
+            if (!toast) return;
+            toast.textContent = message;
+            toast.className = 'fixed bottom-6 right-6 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all duration-300';
+            if (type === 'success') {
+                toast.classList.add('bg-green-600', 'text-white');
+            } else {
+                toast.classList.add('bg-red-600', 'text-white');
+            }
+            void toast.offsetWidth;
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(function() {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(0.5rem)';
+                setTimeout(function() { toast.classList.add('hidden'); }, 300);
+            }, 3000);
+        }
+
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        }
+
+        function checkDirty(textarea) {
+            var key = textarea.dataset.key;
+            var original = textarea.dataset.original;
+            var isDirty = textarea.value !== original;
+            var container = textarea.closest('[data-prompt-key]');
+            if (!container) return;
+            var badge = container.querySelector('.prompt-dirty-badge');
+            var saveBtn = container.querySelector('.prompt-save-btn');
+            if (badge) badge.classList.toggle('hidden', !isDirty);
+            if (saveBtn) saveBtn.disabled = !isDirty;
+        }
+
+        function savePrompt(key) {
+            var container = document.querySelector('[data-prompt-key="' + key + '"]');
+            if (!container) return;
+            var textarea = container.querySelector('.prompt-textarea');
+            var saveBtn = container.querySelector('.prompt-save-btn');
+            var promptText = textarea.value.trim();
+            if (!promptText) {
+                showToast('Prompt text cannot be empty.', 'error');
+                return;
+            }
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+            fetch('/api/system-prompts/' + key, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt_text: promptText }),
+            })
+            .then(function(resp) { return resp.json().then(function(data) { return { ok: resp.ok, data: data }; }); })
+            .then(function(result) {
+                if (!result.ok) {
+                    showToast(result.data.error || 'Save failed.', 'error');
+                    saveBtn.textContent = 'Save';
+                    saveBtn.disabled = false;
+                    return;
+                }
+                textarea.dataset.original = promptText;
+                var badge = container.querySelector('.prompt-dirty-badge');
+                if (badge) badge.classList.add('hidden');
+                saveBtn.textContent = 'Save';
+                showToast('Prompt saved.', 'success');
+            })
+            .catch(function() {
+                showToast('Network error saving prompt.', 'error');
+                saveBtn.textContent = 'Save';
+                saveBtn.disabled = false;
+            });
+        }
+
+        function resetPrompt(key) {
+            if (!confirm('Reset this prompt to its default? Your customizations will be lost.')) return;
+            var container = document.querySelector('[data-prompt-key="' + key + '"]');
+            if (!container) return;
+            fetch('/api/system-prompts/' + key + '/reset', { method: 'POST' })
+            .then(function(resp) { return resp.json().then(function(data) { return { ok: resp.ok, data: data }; }); })
+            .then(function(result) {
+                if (!result.ok) {
+                    showToast(result.data.error || 'Reset failed.', 'error');
+                    return;
+                }
+                var textarea = container.querySelector('.prompt-textarea');
+                textarea.value = result.data.prompt_text;
+                textarea.dataset.original = result.data.prompt_text;
+                autoResize(textarea);
+                var badge = container.querySelector('.prompt-dirty-badge');
+                if (badge) badge.classList.add('hidden');
+                var saveBtn = container.querySelector('.prompt-save-btn');
+                if (saveBtn) saveBtn.disabled = true;
+                showToast('Prompt reset to default.', 'success');
+            })
+            .catch(function() {
+                showToast('Network error resetting prompt.', 'error');
+            });
+        }
+
+        // Individual prompt toggle buttons
+        document.querySelectorAll('.prompt-toggle').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                togglePrompt(btn);
+            });
+        });
+
+        // Save buttons
+        document.querySelectorAll('[data-save-prompt]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                savePrompt(btn.getAttribute('data-save-prompt'));
+            });
+        });
+
+        // Reset buttons
+        document.querySelectorAll('[data-reset-prompt]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                resetPrompt(btn.getAttribute('data-reset-prompt'));
+            });
+        });
+
+        // Auto-resize textareas
+        document.querySelectorAll('.prompt-textarea').forEach(function(ta) {
+            ta.addEventListener('input', function() {
+                autoResize(ta);
+                checkDirty(ta);
+            });
+            var promptContent = ta.closest('.prompt-content');
+            if (promptContent) {
+                var observer = new MutationObserver(function() {
+                    if (!promptContent.classList.contains('hidden')) {
+                        autoResize(ta);
+                    }
+                });
+                observer.observe(promptContent, { attributes: true, attributeFilter: ['class'] });
+            }
+        });
+    })();
+</script>
+{% endblock %}
