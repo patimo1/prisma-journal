@@ -3,6 +3,7 @@ import logging
 import re
 import sys
 import os
+import argparse
 from urllib.parse import urlparse
 
 # Ensure project root is on the path so config can be imported
@@ -272,7 +273,10 @@ def _settings_defaults():
         "chroma_path": Config.CHROMA_PATH,
         "model_cache_location": Config.MODEL_PATH,
         "debug_mode": str(Config.DEBUG).lower(),
+        "llm_provider": Config.LLM_PROVIDER,
         "ollama_base_url": Config.OLLAMA_BASE_URL,
+        "lmstudio_base_url": Config.LMSTUDIO_BASE_URL,
+        "lmstudio_model": Config.LMSTUDIO_MODEL,
         "sd_endpoint": Config.SD_API_URL,
     }
 
@@ -1035,6 +1039,8 @@ def api_analyze():
         }), 503
 
     analysis = analyze_entry(content)
+    if not isinstance(analysis, str):
+        analysis = str(analysis or "")
 
     # Check for AI error in response
     if analysis.startswith("[Error"):
@@ -1551,6 +1557,8 @@ def api_chat():
 
     from utils.ai import chat_with_ollama
     reply = chat_with_ollama("\n".join(prompt_parts), system_prompt=system_prompt)
+    if not isinstance(reply, str):
+        reply = str(reply or "")
     if reply.startswith("[Error"):
         return jsonify({"error": reply.strip("[]")}), 503
     return jsonify({"reply": reply})
@@ -1940,7 +1948,8 @@ def api_suggest_tags():
     if ai_error:
         print(f"[TagSuggest] AI error: {ai_error}")
 
-    ai_tags = ai_result.get("suggested_tags", []) if not ai_error else []
+    ai_tags_raw = ai_result.get("suggested_tags", []) if not ai_error else []
+    ai_tags = [str(tag) for tag in ai_tags_raw] if isinstance(ai_tags_raw, list) else []
     print(f"[TagSuggest] AI tags extracted: {ai_tags}")
 
     # Stage 2: Get existing tags from user's history
@@ -2369,7 +2378,8 @@ def api_analyze_baustellen():
         status_code = 503 if "Ollama" in result["error"] else 400
         return jsonify(result), status_code
     
-    baustellen_data = result.get("baustellen", [])
+    baustellen_data_raw = result.get("baustellen", [])
+    baustellen_data = [b for b in baustellen_data_raw if isinstance(b, dict)] if isinstance(baustellen_data_raw, list) else []
     
     # If cached, we can skip the DB update logic to prevent "drift" 
     # and just return the data with a flag
@@ -2823,11 +2833,15 @@ def api_analyze_entry():
                 yield f"data: {json.dumps({'step': 1, 'status': 'error', 'message': emotions_result['error']})}\n\n"
                 result["emotions"] = []
             else:
-                result["emotions"] = emotions_result.get("emotions", [])
+                raw_emotions = emotions_result.get("emotions", [])
+                result["emotions"] = [
+                    e for e in raw_emotions
+                    if isinstance(e, dict) and e.get("emotion")
+                ] if isinstance(raw_emotions, list) else []
                 # Save emotions to database
                 db_emotions = [
                     {
-                        "emotion": e["emotion"],
+                        "emotion": e.get("emotion"),
                         "intensity": e.get("intensity", "medium"),
                         "frequency": e.get("frequency", 0.5),
                     }
@@ -2919,6 +2933,8 @@ def api_analyze_entry():
         # Step 5: Generate AI Insights (uses the editable analyze_entry prompt)
         yield f"data: {json.dumps({'step': 5, 'status': 'running', 'message': 'Generating AI insights...'})}\n\n"
         insights_result = analyze_entry(content)
+        if not isinstance(insights_result, str):
+            insights_result = str(insights_result or "")
         if insights_result.startswith("[Error"):
             yield f"data: {json.dumps({'step': 5, 'status': 'error', 'message': insights_result})}\n\n"
         else:
@@ -2987,6 +3003,8 @@ def api_test_services():
         try:
             from utils.ai import chat_with_ollama
             response = chat_with_ollama("Say 'test successful' in exactly two words.")
+            if not isinstance(response, str):
+                response = str(response or "")
             results["ollama"] = {
                 "success": "error" not in response.lower(),
                 "message": response[:100] if response else "No response",
@@ -3175,6 +3193,61 @@ def log_response(response):
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(
+        description="PrismA Journal - Secure AI-powered journaling app",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python app/app.py                    # Use default LLM provider from .env
+  python app/app.py --ollama           # Force Ollama
+  python app/app.py --lmstudio         # Force LM Studio
+  python app/app.py --llm ollama       # Alternative syntax
+        """
+    )
+    
+    llm_group = parser.add_mutually_exclusive_group()
+    llm_group.add_argument(
+        "--ollama",
+        action="store_const",
+        const="ollama",
+        dest="llm_provider",
+        help="Use Ollama as LLM provider (overrides .env)"
+    )
+    llm_group.add_argument(
+        "--lmstudio",
+        action="store_const",
+        const="lmstudio",
+        dest="llm_provider",
+        help="Use LM Studio as LLM provider (overrides .env)"
+    )
+    llm_group.add_argument(
+        "--llm",
+        choices=["ollama", "lmstudio"],
+        dest="llm_provider",
+        help="Specify LLM provider explicitly"
+    )
+    
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=5000,
+        help="Port to run the server on (default: 5000)"
+    )
+    
+    parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="Host to bind to (default: 0.0.0.0)"
+    )
+    
+    args = parser.parse_args()
+    
+    # Override Config.LLM_PROVIDER if command-line argument provided
+    if args.llm_provider:
+        Config.LLM_PROVIDER = args.llm_provider.lower()
+        print(f"[CLI Override] LLM Provider set to: {Config.LLM_PROVIDER}")
+    
     init_services()
     init_db()
     # Apply data retention policy (delete old entries)
@@ -3183,4 +3256,11 @@ if __name__ == "__main__":
     if retention_result.get("deleted_count", 0) > 0:
         print(f"Data retention: deleted {retention_result['deleted_count']} entries "
               f"(policy: {retention_result['retention_policy']})")
-    app.run(debug=Config.DEBUG, host="0.0.0.0", port=5000)
+    
+    # Print the URL before starting the server
+    url = f"http://127.0.0.1:{args.port}" if args.host == "0.0.0.0" else f"http://{args.host}:{args.port}"
+    print(f"\n{'='*60}")
+    print(f"  PrismA Journal is running at: {url}")
+    print(f"{'='*60}\n")
+    
+    app.run(debug=Config.DEBUG, host=args.host, port=args.port)

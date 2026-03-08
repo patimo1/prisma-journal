@@ -11,6 +11,7 @@ import sys
 import os
 import time
 from datetime import datetime
+from typing import Any
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
@@ -22,6 +23,7 @@ try:
     import psutil
     HAS_PSUTIL = True
 except ImportError:
+    psutil = None
     HAS_PSUTIL = False
 
 log = logging.getLogger(__name__)
@@ -37,6 +39,8 @@ class ServiceStatus:
     def __init__(self):
         self.ollama: bool = False
         self.ollama_message: str = ""
+        self.lmstudio: bool = False
+        self.lmstudio_message: str = ""
         self.whisper: bool = False
         self.whisper_message: str = ""
         self.chromadb: bool = False
@@ -48,11 +52,19 @@ class ServiceStatus:
 
     def summary(self) -> list[dict]:
         """Return a list of dicts suitable for display in the settings page."""
+        active_marker = " [ACTIVE]" if Config.LLM_PROVIDER == "ollama" else ""
+        lms_active_marker = " [ACTIVE]" if Config.LLM_PROVIDER == "lmstudio" else ""
+        
         return [
             {
-                "name": "Ollama (LLM)",
+                "name": f"Ollama (LLM){active_marker}",
                 "available": self.ollama,
                 "message": self.ollama_message,
+            },
+            {
+                "name": f"LM Studio (LLM){lms_active_marker}",
+                "available": self.lmstudio,
+                "message": self.lmstudio_message,
             },
             {
                 "name": "Whisper (Voice)",
@@ -114,6 +126,36 @@ def check_ollama() -> tuple[bool, str]:
         return False, f"Ollama at {Config.OLLAMA_BASE_URL} timed out."
     except Exception as e:
         return False, f"Ollama check failed: {e}"
+
+
+def check_lmstudio() -> tuple[bool, str]:
+    """Check LM Studio API via OpenAI-compatible endpoint. Returns (ok, message)."""
+    url = f"{Config.LMSTUDIO_BASE_URL}/models"
+    try:
+        resp = requests.get(url, timeout=5)
+        resp.raise_for_status()
+        data = resp.json()
+        models = [m.get("id", "") for m in data.get("data", [])]
+        if not models:
+            return False, (
+                f"LM Studio at {Config.LMSTUDIO_BASE_URL} is running but has no models loaded. "
+                "Load a model in LM Studio."
+            )
+        # Show available models
+        model_list = ", ".join(models[:3])
+        return True, (
+            f"LM Studio is running. Available models: {model_list}. "
+            f"Set LMSTUDIO_MODEL to match."
+        )
+    except requests.ConnectionError:
+        return False, (
+            f"Cannot connect to LM Studio at {Config.LMSTUDIO_BASE_URL}. "
+            "Ensure LM Studio is running with the local server enabled."
+        )
+    except requests.Timeout:
+        return False, f"LM Studio at {Config.LMSTUDIO_BASE_URL} timed out."
+    except Exception as e:
+        return False, f"LM Studio check failed: {e}"
 
 
 def check_whisper() -> tuple[bool, str]:
@@ -215,6 +257,7 @@ def init_services() -> ServiceStatus:
         log.warning("Config warning [%s]: %s", field, msg)
 
     status.ollama, status.ollama_message = check_ollama()
+    status.lmstudio, status.lmstudio_message = check_lmstudio()
     status.whisper, status.whisper_message = check_whisper()
     status.chromadb, status.chromadb_message = check_chromadb()
     status.embeddings, status.embeddings_message = check_embeddings()
@@ -222,9 +265,10 @@ def init_services() -> ServiceStatus:
 
     # Log a startup summary
     log.info("--- Service status ---")
+    log.info("  Active LLM Provider: %s", Config.LLM_PROVIDER.upper())
     for svc in status.summary():
         level = "OK" if svc["available"] else "UNAVAILABLE"
-        log.info("  %-35s [%s] %s", svc["name"], level, svc["message"])
+        log.info("  %-45s [%s] %s", svc["name"], level, svc["message"])
     log.info("----------------------")
 
     return status
@@ -252,13 +296,13 @@ def get_detailed_status() -> dict:
     """
     import platform
 
-    system_info = {
+    system_info: dict[str, Any] = {
         "platform": platform.system(),
         "platform_version": platform.version(),
         "python_version": platform.python_version(),
     }
 
-    if HAS_PSUTIL:
+    if HAS_PSUTIL and psutil is not None:
         system_info["memory_total_gb"] = round(psutil.virtual_memory().total / (1024**3), 1)
         system_info["memory_available_gb"] = round(psutil.virtual_memory().available / (1024**3), 1)
         system_info["memory_percent_used"] = psutil.virtual_memory().percent
@@ -273,6 +317,10 @@ def get_detailed_status() -> dict:
     # Ollama diagnostics
     ollama_diag = _diagnose_ollama()
     diagnostics["services"]["ollama"] = ollama_diag
+
+    # LM Studio diagnostics
+    lmstudio_diag = _diagnose_lmstudio()
+    diagnostics["services"]["lmstudio"] = lmstudio_diag
 
     # Whisper diagnostics
     whisper_diag = _diagnose_whisper()
@@ -358,7 +406,73 @@ def _diagnose_ollama() -> dict:
         )
     except requests.Timeout:
         diag["message"] = "Connection timed out"
-        diag["setup_instructions"] = "Ollama may be overloaded. Try restarting: ollama serve"
+        diag["setup_instructions"] = "Ollama may be overloaded. Try restarting the server: ollama serve"
+    except Exception as e:
+        diag["message"] = f"Error: {str(e)}"
+
+    return diag
+
+
+def _diagnose_lmstudio() -> dict:
+    """Get detailed LM Studio diagnostics."""
+    diag = {
+        "name": "LM Studio (LLM)",
+        "icon": "cpu",
+        "available": False,
+        "message": "",
+        "details": {},
+        "setup_instructions": None,
+        "config": {
+            "endpoint": Config.LMSTUDIO_BASE_URL,
+            "model": Config.LMSTUDIO_MODEL,
+            "provider_active": Config.LLM_PROVIDER == "lmstudio",
+        },
+    }
+
+    url = f"{Config.LMSTUDIO_BASE_URL}/models"
+    try:
+        start = time.time()
+        resp = requests.get(url, timeout=5)
+        latency_ms = round((time.time() - start) * 1000, 1)
+        resp.raise_for_status()
+
+        payload = resp.json()
+        models = payload.get("data", []) if isinstance(payload, dict) else []
+        model_ids = [m.get("id", "") for m in models if isinstance(m, dict)]
+
+        diag["details"]["latency_ms"] = latency_ms
+        diag["details"]["models_available"] = len(model_ids)
+        diag["details"]["model_list"] = model_ids[:10]
+
+        if not model_ids:
+            diag["message"] = "Connected, but no models loaded"
+            diag["setup_instructions"] = "Load a model in LM Studio's local server first."
+            return diag
+
+        configured_ok = any(Config.LMSTUDIO_MODEL == model_id for model_id in model_ids)
+        diag["details"]["configured_model_available"] = configured_ok
+
+        diag["available"] = True
+        if configured_ok:
+            diag["message"] = f"Connected - model '{Config.LMSTUDIO_MODEL}' available"
+        else:
+            diag["message"] = (
+                f"Connected, but configured model '{Config.LMSTUDIO_MODEL}' not found"
+            )
+            diag["setup_instructions"] = (
+                "Set LMSTUDIO_MODEL to one of the available model IDs or load the configured model."
+            )
+
+    except requests.ConnectionError:
+        diag["message"] = "Cannot connect to LM Studio"
+        diag["setup_instructions"] = (
+            "1. Open LM Studio\n"
+            "2. Start Local Server (OpenAI-compatible)\n"
+            f"3. Ensure endpoint is reachable at {Config.LMSTUDIO_BASE_URL}"
+        )
+    except requests.Timeout:
+        diag["message"] = "Connection timed out"
+        diag["setup_instructions"] = "LM Studio may be busy; try again or restart its local server."
     except Exception as e:
         diag["message"] = f"Error: {str(e)}"
 
@@ -635,7 +749,7 @@ def _diagnose_stable_diffusion() -> dict:
         diag["message"] = "Cannot connect to Ollama"
         diag["setup_instructions"] = (
             "1. Install Ollama: https://ollama.ai\n"
-            "2. Start Ollama: ollama serve\n"
+            "2. Start the Ollama server: ollama serve\n"
             "3. Pull FLUX: ollama pull flux-schnell"
         )
     except requests.Timeout:

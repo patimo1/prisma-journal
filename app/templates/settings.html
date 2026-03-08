@@ -328,11 +328,38 @@
                     <input type="text" id="model_cache_location" name="model_cache_location" value="{{ settings.model_cache_location }}"
                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
                 </div>
+                
+                <!-- LLM Provider Selection -->
+                <div class="sm:col-span-2">
+                    <label for="llm_provider" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">LLM Provider</label>
+                    <select id="llm_provider" name="llm_provider" 
+                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
+                        <option value="ollama" {% if settings.llm_provider == 'ollama' %}selected{% endif %}>Ollama</option>
+                        <option value="lmstudio" {% if settings.llm_provider == 'lmstudio' %}selected{% endif %}>LM Studio</option>
+                    </select>
+                    <p class="mt-1 text-xs text-surface-500">Choose which LLM backend to use for AI features</p>
+                </div>
+                
+                <!-- Ollama Settings -->
                 <div>
                     <label for="ollama_base_url" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Ollama endpoint</label>
                     <input type="text" id="ollama_base_url" name="ollama_base_url" value="{{ settings.ollama_base_url }}"
                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
                 </div>
+                
+                <!-- LM Studio Settings -->
+                <div>
+                    <label for="lmstudio_base_url" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">LM Studio endpoint</label>
+                    <input type="text" id="lmstudio_base_url" name="lmstudio_base_url" value="{{ settings.lmstudio_base_url }}"
+                           class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
+                </div>
+                <div>
+                    <label for="lmstudio_model" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">LM Studio model name</label>
+                    <input type="text" id="lmstudio_model" name="lmstudio_model" value="{{ settings.lmstudio_model }}"
+                           class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
+                    <p class="mt-1 text-xs text-surface-500">Model ID as shown in LM Studio (e.g., 'llama-3.2-3b-instruct')</p>
+                </div>
+                
                 <div>
                     <label for="sd_endpoint" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Stable Diffusion endpoint</label>
                     <input type="text" id="sd_endpoint" name="sd_endpoint" value="{{ settings.sd_endpoint }}"

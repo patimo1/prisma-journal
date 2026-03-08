@@ -130,8 +130,11 @@
                 </nav>
 
                 <div class="mt-auto space-y-3">
-                    {% if not service_status.ollama %}
-                    <div class="text-xs text-red-500" title="{{ service_status.ollama_message }}">LLM offline</div>
+                    {% set active_llm_provider = ui_settings.get('llm_provider', 'ollama') %}
+                    {% set active_llm_online = service_status.lmstudio if active_llm_provider == 'lmstudio' else service_status.ollama %}
+                    {% set active_llm_message = service_status.lmstudio_message if active_llm_provider == 'lmstudio' else service_status.ollama_message %}
+                    {% if not active_llm_online %}
+                    <div class="text-xs text-red-500" title="{{ active_llm_message }}">LLM offline</div>
                     {% endif %}
                     <div class="flex items-center gap-2">
                         <button id="theme-toggle" type="button" class="p-2 rounded-lg text-surface-500 hover:bg-surface-100 transition-colors" title="Toggle dark mode">

@@ -319,21 +319,64 @@ def _make_ollama_request(url, payload, timeout):
         return None, f"[Error: {e}]"
 
 
+def _make_lmstudio_request(url, payload, timeout):
+    """Make a single request to LM Studio (OpenAI-compatible) API with error handling."""
+    try:
+        resp = requests.post(url, json=payload, timeout=timeout)
+        resp.raise_for_status()
+        data = resp.json()
+        # Extract content from OpenAI format: choices[0].message.content
+        if "choices" in data and len(data["choices"]) > 0:
+            return data["choices"][0].get("message", {}).get("content", ""), None
+        return "", None
+    except requests.ConnectionError:
+        return None, (
+            "[Error: Cannot connect to LM Studio at "
+            f"{Config.LMSTUDIO_BASE_URL}. Make sure it is running "
+            "with the local server enabled.]"
+        )
+    except requests.Timeout:
+        return None, (
+            f"[Error: LM Studio request timed out after {timeout}s. "
+            "Try a smaller model or increase LMSTUDIO_TIMEOUT.]"
+        )
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 404:
+            return None, (
+                f"[Error: Model '{payload.get('model', 'unknown')}' not found in LM Studio. "
+                "Load a model in LM Studio.]"
+            )
+        return None, f"[Error: LM Studio returned HTTP {e.response.status_code if e.response else '?'}]"
+    except Exception as e:
+        return None, f"[Error: {e}]"
+
+
 def chat_with_ollama(prompt, system_prompt=None, model=None, retry=True, timeout=None):
-    """Send a prompt to the Ollama API and return the response text.
+    """Send a prompt to the configured LLM provider (Ollama or LM Studio) and return the response text.
 
     Includes retry logic for transient failures with exponential backoff.
 
     Args:
         prompt: The prompt to send
         system_prompt: Optional system prompt
-        model: Optional model override (defaults to Config.OLLAMA_MODEL)
+        model: Optional model override (defaults to configured model)
         retry: Whether to retry on transient failures (default True)
-        timeout: Optional timeout override (defaults to Config.OLLAMA_TIMEOUT)
+        timeout: Optional timeout override (defaults to configured timeout)
 
     Returns:
         Response text on success, or error message string starting with "[Error"
     """
+    from utils.services import status
+
+    # Route to the appropriate provider based on config
+    if Config.LLM_PROVIDER == "lmstudio":
+        return _chat_with_lmstudio(prompt, system_prompt, model, retry, timeout)
+    else:
+        return _chat_with_ollama(prompt, system_prompt, model, retry, timeout)
+
+
+def _chat_with_ollama(prompt, system_prompt=None, model=None, retry=True, timeout=None):
+    """Internal function for Ollama API calls."""
     from utils.services import status
 
     if not status.ollama:
@@ -385,6 +428,67 @@ def chat_with_ollama(prompt, system_prompt=None, model=None, retry=True, timeout
             time.sleep(delay)
 
     log.error("Ollama request failed after %d attempts: %s", max_attempts, last_error)
+    return last_error
+
+
+def _chat_with_lmstudio(prompt, system_prompt=None, model=None, retry=True, timeout=None):
+    """Internal function for LM Studio (OpenAI-compatible) API calls."""
+    from utils.services import status
+
+    if not status.lmstudio:
+        return (
+            "[LM Studio is not available. " + status.lmstudio_message + "]"
+        )
+
+    model = model or Config.LMSTUDIO_MODEL
+    timeout = timeout or Config.LMSTUDIO_TIMEOUT
+    url = f"{Config.LMSTUDIO_BASE_URL}/chat/completions"
+
+    # Build messages in OpenAI format
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({"role": "user", "content": prompt})
+
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.7,
+        "stream": False,
+    }
+
+    max_attempts = MAX_RETRIES + 1 if retry else 1
+    last_error = None
+
+    for attempt in range(max_attempts):
+        start_time = time.time()
+        result, error = _make_lmstudio_request(url, payload, timeout)
+
+        if result is not None:
+            duration = time.time() - start_time
+            log.debug("LM Studio request completed in %.1fs (attempt %d)", duration, attempt + 1)
+            return result
+
+        last_error = error
+
+        # Don't retry connection errors
+        if "[Error: Cannot connect" in error:
+            break
+
+        # Don't retry 404 (model not found)
+        if "not found in LM Studio" in error:
+            break
+
+        # Retry with backoff for other errors
+        if attempt < max_attempts - 1:
+            delay = RETRY_BASE_DELAY * (2 ** attempt)
+            log.warning(
+                "LM Studio request failed (attempt %d/%d): %s. Retrying in %.1fs",
+                attempt + 1, max_attempts, error, delay
+            )
+            time.sleep(delay)
+
+    log.error("LM Studio request failed after %d attempts: %s", max_attempts, last_error)
     return last_error
 
 

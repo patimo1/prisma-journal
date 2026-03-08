@@ -141,11 +141,27 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </summary>
-                <div class="pt-2 pb-4 text-sm text-surface-500 dark:text-surface-400 space-y-2">
-                    <p>1. Ensure Ollama is running: <code class="bg-surface-100 dark:bg-surface-700 px-1 rounded">ollama serve</code></p>
-                    <p>2. Pull a model: <code class="bg-surface-100 dark:bg-surface-700 px-1 rounded">ollama pull llama3.2</code></p>
-                    <p>3. Check the endpoint matches your .env: <code class="bg-surface-100 dark:bg-surface-700 px-1 rounded">OLLAMA_BASE_URL</code></p>
-                    <p>4. If analysis is slow, try a smaller model or increase <code class="bg-surface-100 dark:bg-surface-700 px-1 rounded">OLLAMA_TIMEOUT</code></p>
+                <div class="pt-2 pb-4 text-sm text-surface-500 dark:text-surface-400 space-y-3">
+                    <div>
+                        <p class="font-semibold text-surface-700 dark:text-surface-200 mb-2">Using Ollama:</p>
+                        <div class="space-y-2 pl-2">
+                            <p>1. Ensure Ollama is running: <code class="bg-surface-100 dark:bg-surface-700 px-1 rounded">ollama serve</code></p>
+                            <p>2. Pull a model: <code class="bg-surface-100 dark:bg-surface-700 px-1 rounded">ollama pull llama3.2</code></p>
+                            <p>3. Check the endpoint matches your .env: <code class="bg-surface-100 dark:bg-surface-700 px-1 rounded">OLLAMA_BASE_URL</code></p>
+                            <p>4. If analysis is slow, try a smaller model or increase <code class="bg-surface-100 dark:bg-surface-700 px-1 rounded">OLLAMA_TIMEOUT</code></p>
+                        </div>
+                    </div>
+                    <div class="border-t border-surface-200 dark:border-surface-600 pt-3">
+                        <p class="font-semibold text-surface-700 dark:text-surface-200 mb-2">Using LM Studio:</p>
+                        <div class="space-y-2 pl-2">
+                            <p>1. Open LM Studio and start the Local Server (Developer tab)</p>
+                            <p>2. Load a model in LM Studio before starting the server</p>
+                            <p>3. Check endpoint matches your .env: <code class="bg-surface-100 dark:bg-surface-700 px-1 rounded">LMSTUDIO_BASE_URL</code> (default: http://127.0.0.1:1234/v1)</p>
+                            <p>4. Set <code class="bg-surface-100 dark:bg-surface-700 px-1 rounded">LLM_PROVIDER=lmstudio</code> in .env to use it as the active provider</p>
+                            <p>5. Verify <code class="bg-surface-100 dark:bg-surface-700 px-1 rounded">LMSTUDIO_MODEL</code> matches the loaded model ID</p>
+                            <p>6. Restart the app with <code class="bg-surface-100 dark:bg-surface-700 px-1 rounded">--lmstudio</code> flag after changing settings</p>
+                        </div>
+                    </div>
                 </div>
             </details>
 
