@@ -141,6 +141,9 @@ class Config:
     # -- UI theme ------------------------------------------------------------
     COLOR_THEME = os.environ.get("COLOR_THEME", "monochrome")
 
+    # -- Language / i18n -----------------------------------------------------
+    DEFAULT_LANGUAGE = os.environ.get("DEFAULT_LANGUAGE", "de")  # "en" or "de"
+
     # -- Tag Auto-Suggestion -------------------------------------------------
     TAG_MODEL = os.environ.get("TAG_MODEL", "deepseek-r1:14b")
     TAG_ENABLED = os.environ.get("TAG_ENABLED", "true").lower() == "true"

@@ -29,22 +29,29 @@
   - Add preset date ranges (last week, month, year)
   - Improve filter UX
 
-### Low Priority
 - [ ] **Localization / multi language support
   - Full English language support
 
+### Low Priority
+
+
 ---
+
+
+
+## In Progress 
+
 
 ## 🐛 Known Bugs
 
 ### Critical
-- [ ] **Recurring Chinese characters in DeepSeek responses**
+- [] **Recurring Chinese characters in DeepSeek responses**
   - Issue: Chinese characters appearing where DeepSeek is used
   - Needs investigation and fix
   - Related to prompt/response handling
 
 ### Setup/Installing
-- [x] **Requirements.txt: Error installing "openai-whisper" package**
+- [] **Requirements.txt: Error installing "openai-whisper" package**
   - Error during package installation
   - **Workaround documented:** `python -m pip install --no-build-isolation openai-whisper`
   - Consider: Adding to setup docs or fixing in requirements.txt
@@ -71,6 +78,10 @@
   - Created `docs/features/` for feature docs
   - Created `docs/setup/` for setup guides
   - Updated README with doc links
+
+- **Localization/Internationalization**
+  - Full English localization
+  - Multi-language UI support
 
 - **Bug fixes/Other improvements**
   - Dashboard insights now skip expensive AI analysis when not enough entries exist

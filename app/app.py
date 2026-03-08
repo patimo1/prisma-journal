@@ -134,6 +134,7 @@ from utils.errors import (
     ValidationError,
 )
 from utils.rate_limit import rate_limit
+from utils.i18n import translate as i18n_translate, normalize_language
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -185,13 +186,24 @@ def inject_globals():
     """Make theme colors and service status available to every template."""
     settings = _get_settings_with_defaults()
     theme_name = settings.get("color_theme", Config.COLOR_THEME)
+    language = normalize_language(settings.get("ui_language") or Config.DEFAULT_LANGUAGE)
     return {
         "theme_colors": COLOR_THEMES.get(theme_name, COLOR_THEMES["ocean"]),
         "theme_name": theme_name,
         "service_status": status,
         "ui_settings": settings,
         "ui_body_classes": _ui_body_classes(settings),
+        "ui_language": language,
+        "t": lambda key, **kwargs: i18n_translate(key, language, **kwargs),
     }
+
+
+def _current_language():
+    return normalize_language(get_setting("ui_language") or Config.DEFAULT_LANGUAGE)
+
+
+def _t(key, **kwargs):
+    return i18n_translate(key, _current_language(), **kwargs)
 
 
 def _entry_metadata(entry):
@@ -261,6 +273,7 @@ def _settings_defaults():
         "whisper_model": Config.WHISPER_MODEL,
         "voice_auto_edit": "true",
         "voice_language": "auto",
+        "ui_language": normalize_language(Config.DEFAULT_LANGUAGE),
         "theme_mode": "auto",
         "color_theme": Config.COLOR_THEME,
         "font_size": "medium",
@@ -350,6 +363,7 @@ def _validate_settings(values):
     expect_enum("font_size", ["small", "medium", "large"])
     expect_enum("spacing_density", ["compact", "comfortable"])
     expect_enum("journal_view", ["grid", "list"])
+    expect_enum("ui_language", ["de", "en"])
     expect_enum("retention_period", ["all", "1_year", "2_years"])
     expect_enum("sd_default_style", ARTWORK_STYLES)
     expect_enum("whisper_model", ["tiny", "base", "small", "medium"])
@@ -1311,10 +1325,10 @@ def api_insights_big_five():
     if len(summaries) < 3:
         return jsonify({
             "error": "Not enough entries for analysis",
-            "message": "Mindestens 3 Einträge erforderlich für eine Big Five Analyse"
+            "message": _t("insights.big_five.min_entries")
         }), 200
     
-    label = "Gesamt" if not date_from else f"Letzte {range_value} Tage"
+    label = "Overall" if not date_from else f"Last {range_value} days"
     result = generate_big_five_analysis(summaries, label)
 
     if "error" in result:
@@ -1376,7 +1390,7 @@ def api_insights_baustellen():
     if len(entry_data) < 5:
         return jsonify({
             "baustellen": [],
-            "message": "Mindestens 5 Einträge erforderlich für Baustellen-Analyse"
+            "message": _t("insights.issues.min_entries")
         })
     
     # Generate Baustellen analysis
@@ -1864,18 +1878,22 @@ def api_update_system_prompt(key):
 
 @app.route("/api/system-prompts/<key>/reset", methods=["POST"])
 def api_reset_system_prompt(key):
-    """Reset a system prompt to its hardcoded default."""
-    from utils.ai import _DEFAULT_PROMPTS
+    """Reset a system prompt to its default from i18n."""
+    from utils.ai import _get_prompt
+    
+    try:
+        # Get default prompt from i18n system
+        default_text = _get_prompt(key)
+        if not default_text:
+            return jsonify({"error": f"No default found for prompt '{key}'"}), 404
 
-    default_text = _DEFAULT_PROMPTS.get(key)
-    if default_text is None:
-        return jsonify({"error": f"No default found for prompt '{key}'"}), 404
+        success = update_system_prompt(key, default_text)
+        if not success:
+            return jsonify({"error": f"Prompt '{key}' not found in database"}), 404
 
-    success = update_system_prompt(key, default_text)
-    if not success:
-        return jsonify({"error": f"Prompt '{key}' not found in database"}), 404
-
-    return jsonify({"success": True, "key": key, "prompt_text": default_text})
+        return jsonify({"success": True, "key": key, "prompt_text": default_text})
+    except Exception as e:
+        return jsonify({"error": f"Failed to reset prompt: {str(e)}"}), 500
 
 
 # ---------------------------------------------------------------------------
@@ -2410,7 +2428,7 @@ def api_analyze_baustellen():
             "baustellen": baustellen_data,
             "count": len(baustellen_data),
             "cached": True,
-            "message": "Keine neuen Einträge seit der letzten Analyse."
+            "message": _t("insights.issues.cached")
         })
     
     if auto_create and status.ollama:
@@ -2507,23 +2525,23 @@ def _get_or_generate_daily_question():
     # Check if there are previous entries to personalize from
     if not has_previous_entries():
         return {
-            "question": "Was bewegt dich heute?",
+            "question": _t("daily_question.default"),
             "is_new": False,
             "is_answered": False,
             "date": today,
             "fallback": True,
-            "message": "Beginne mit dem Journaling, um personalisierte Fragen zu erhalten!",
+            "message": _t("daily_question.start_journaling"),
         }
 
     # Check if Ollama is available
     if not status.ollama:
         return {
-            "question": "Was bewegt dich heute?",
+            "question": _t("daily_question.default"),
             "is_new": False,
             "is_answered": False,
             "date": today,
             "fallback": True,
-            "message": "KI ist offline - Standardfrage wird verwendet",
+            "message": _t("daily_question.ai_offline"),
         }
 
     # Get recent entry summaries to generate a personalized question
@@ -2536,7 +2554,7 @@ def _get_or_generate_daily_question():
 
     if not recent_summaries:
         return {
-            "question": "Was bewegt dich heute?",
+            "question": _t("daily_question.default"),
             "is_new": False,
             "is_answered": False,
             "date": today,
@@ -2547,7 +2565,7 @@ def _get_or_generate_daily_question():
     result = generate_daily_question(recent_summaries)
     if "error" in result:
         return {
-            "question": "Was bewegt dich heute?",
+            "question": _t("daily_question.default"),
             "is_new": False,
             "is_answered": False,
             "date": today,
@@ -2556,7 +2574,7 @@ def _get_or_generate_daily_question():
         }
 
     # Save the generated question
-    question_text = result.get("question", "Was bewegt dich heute?")
+    question_text = result.get("question", _t("daily_question.default"))
     create_daily_question(today, question_text)
 
     return {
@@ -2726,7 +2744,7 @@ def api_new_daily_question():
 
     if not status.ollama:
         return jsonify({
-            "error": "KI ist nicht verfügbar.",
+            "error": _t("ai.unavailable"),
             "details": status.ollama_message,
             "recoverable": True,
         }), 503
@@ -2736,12 +2754,12 @@ def api_new_daily_question():
     # Check if there are previous entries to personalize from
     if not has_previous_entries():
         return jsonify({
-            "question": "Was bewegt dich heute?",
+            "question": _t("daily_question.default"),
             "is_new": False,
             "is_answered": False,
             "date": today,
             "fallback": True,
-            "message": "Beginne mit dem Journaling, um personalisierte Fragen zu erhalten!",
+            "message": _t("daily_question.start_journaling"),
         })
 
     # Get recent entry summaries to generate a personalized question
@@ -2754,7 +2772,7 @@ def api_new_daily_question():
 
     if not recent_summaries:
         return jsonify({
-            "question": "Was bewegt dich heute?",
+            "question": _t("daily_question.default"),
             "is_new": False,
             "is_answered": False,
             "date": today,
@@ -2770,7 +2788,7 @@ def api_new_daily_question():
         }), 503
 
     # Replace the existing question with the new one
-    question_text = result.get("question", "Was bewegt dich heute?")
+    question_text = result.get("question", _t("daily_question.default"))
     replace_daily_question(today, question_text)
 
     return jsonify({
@@ -3224,7 +3242,8 @@ Examples:
   python app/app.py                    # Use default LLM provider from .env
   python app/app.py --ollama           # Force Ollama
   python app/app.py --lmstudio         # Force LM Studio
-  python app/app.py --llm ollama       # Alternative syntax
+  python app/app.py --language en      # Use English
+  python app/app.py --language de      # Use German (default)
         """
     )
     
@@ -3263,6 +3282,14 @@ Examples:
         help="Host to bind to (default: 0.0.0.0)"
     )
     
+    parser.add_argument(
+        "--language",
+        "--lang",
+        choices=["en", "de"],
+        dest="language",
+        help="Set UI and AI response language: 'en' (English) or 'de' (German, default)"
+    )
+    
     args = parser.parse_args()
     
     # Override Config.LLM_PROVIDER if command-line argument provided
@@ -3270,8 +3297,27 @@ Examples:
         Config.LLM_PROVIDER = args.llm_provider.lower()
         print(f"[CLI Override] LLM Provider set to: {Config.LLM_PROVIDER}")
     
+    # Override Config.DEFAULT_LANGUAGE if command-line argument provided
+    if args.language:
+        Config.DEFAULT_LANGUAGE = args.language.lower()
+        print(f"[CLI Override] Language set to: {Config.DEFAULT_LANGUAGE}")
+    
     init_services()
     init_db()
+
+    # Persist CLI language override to UI settings for consistent template/API language.
+    if args.language:
+        set_setting("ui_language", normalize_language(Config.DEFAULT_LANGUAGE))
+
+    effective_default_language = normalize_language(Config.DEFAULT_LANGUAGE)
+    persisted_ui_language = normalize_language(
+        get_setting("ui_language") or effective_default_language
+    )
+    print(
+        "[Language] "
+        f"DEFAULT_LANGUAGE={effective_default_language} "
+        f"| ui_language={persisted_ui_language}"
+    )
     # Apply data retention policy (delete old entries)
     from database.db import apply_data_retention
     retention_result = apply_data_retention()

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Settings{% endblock %}
+{% block title %}{{ t('ui.nav.settings') }}{% endblock %}
 
 {% block head %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -9,14 +9,14 @@
 <div class="max-w-4xl mx-auto space-y-8">
     <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-surface-900 dark:text-white">Settings</h1>
-            <p class="text-sm text-surface-500 dark:text-surface-400">Personalize your journaling experience.</p>
+            <h1 class="text-2xl font-bold text-surface-900 dark:text-white">{{ t('ui.nav.settings') }}</h1>
+            <p class="text-sm text-surface-500 dark:text-surface-400">{{ t('ui.settings.subtitle') }}</p>
         </div>
         <div class="flex items-center gap-2">
-            <button id="settings-export" class="text-xs font-medium px-3 py-2 rounded-lg border border-surface-200 dark:border-surface-600">Export Settings</button>
+            <button id="settings-export" class="text-xs font-medium px-3 py-2 rounded-lg border border-surface-200 dark:border-surface-600">{{ t('ui.settings.export_settings') }}</button>
             <label class="text-xs font-medium px-3 py-2 rounded-lg border border-surface-200 dark:border-surface-600 cursor-pointer">
                 <input type="file" id="settings-import" accept="application/json" class="hidden">
-                Import Settings
+                {{ t('ui.settings.import_settings') }}
             </label>
         </div>
     </div>
@@ -26,7 +26,7 @@
     {% endif %}
     {% if settings_errors %}
     <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
-        <p class="font-semibold mb-2">Please fix the following:</p>
+        <p class="font-semibold mb-2">{{ t('ui.settings.fix_following') }}</p>
         <ul class="list-disc list-inside space-y-1">
             {% for err in settings_errors %}
             <li>{{ err }}</li>
@@ -36,7 +36,7 @@
     {% endif %}
     {% if restart_warnings %}
     <div class="bg-amber-50 border border-amber-200 text-amber-700 rounded-lg p-3 text-sm">
-        <p class="font-semibold mb-2">Restart required</p>
+        <p class="font-semibold mb-2">{{ t('ui.settings.restart_required') }}</p>
         <ul class="list-disc list-inside space-y-1">
             {% for warn in restart_warnings %}
             <li>{{ warn }}</li>
@@ -48,8 +48,8 @@
     <!-- Service Status -->
     <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6">
         <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">Service Status</h2>
-            <button onclick="refreshServices()" id="refresh-btn" class="text-xs text-primary-600 hover:text-primary-700 font-medium">Refresh</button>
+            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">{{ t('ui.settings.service_status') }}</h2>
+            <button onclick="refreshServices()" id="refresh-btn" class="text-xs text-primary-600 hover:text-primary-700 font-medium">{{ t('ui.settings.refresh') }}</button>
         </div>
         <div class="space-y-3" id="service-list">
             {% for svc in services %}
@@ -70,69 +70,69 @@
         <!-- Account & Profile -->
         <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6 space-y-5">
             <div class="flex flex-wrap items-center justify-between gap-3">
-                <h2 class="text-lg font-semibold text-surface-900 dark:text-white">Account &amp; Profile</h2>
-                <span class="text-xs text-surface-400">Local-only, single-user mode</span>
+                <h2 class="text-lg font-semibold text-surface-900 dark:text-white">{{ t('ui.settings.account_profile') }}</h2>
+                <span class="text-xs text-surface-400">{{ t('ui.settings.local_single_user') }}</span>
             </div>
             <div>
-                <label for="username" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Username</label>
+                <label for="username" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.username') }}</label>
                 <input type="text" id="username" name="username"
                        value="{{ settings.username }}"
                        placeholder="future multi-user"
                        class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
-                <p class="text-xs text-surface-400 mt-1">Stored for upcoming multi-user support.</p>
+                <p class="text-xs text-surface-400 mt-1">{{ t('ui.settings.username_hint') }}</p>
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
                 <div class="bg-surface-50 dark:bg-surface-900/30 rounded-xl p-4 border border-surface-200 dark:border-surface-700">
-                    <p class="text-xs text-surface-400 mb-3">Data export</p>
+                    <p class="text-xs text-surface-400 mb-3">{{ t('ui.settings.data_export') }}</p>
                     <div class="flex flex-wrap gap-2">
                         <button type="button" data-export-format="json" class="text-xs font-medium px-3 py-2 rounded-lg border border-surface-200 dark:border-surface-600">JSON</button>
                         <button type="button" data-export-format="markdown" class="text-xs font-medium px-3 py-2 rounded-lg border border-surface-200 dark:border-surface-600">Markdown</button>
                         <button type="button" data-export-format="pdf" class="text-xs font-medium px-3 py-2 rounded-lg border border-surface-200 dark:border-surface-600">PDF</button>
                     </div>
-                    <p class="text-[11px] text-surface-400 mt-2">Exports all entries with tags and emotions.</p>
+                    <p class="text-[11px] text-surface-400 mt-2">{{ t('ui.settings.data_export_hint') }}</p>
                 </div>
                 <div class="bg-surface-50 dark:bg-surface-900/30 rounded-xl p-4 border border-surface-200 dark:border-surface-700">
-                    <p class="text-xs text-surface-400 mb-3">Delete all data</p>
+                    <p class="text-xs text-surface-400 mb-3">{{ t('ui.settings.delete_all_data') }}</p>
                     <button type="button" id="delete-all-data"
                             class="text-xs font-medium px-3 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
-                        Delete Everything
+                        {{ t('ui.settings.delete_everything') }}
                     </button>
-                    <p class="text-[11px] text-surface-400 mt-2">Deletes entries, tags, emotions, and embeddings.</p>
+                    <p class="text-[11px] text-surface-400 mt-2">{{ t('ui.settings.delete_all_hint') }}</p>
                 </div>
             </div>
             <div class="mt-4">
-                <label for="data_retention" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Data retention period</label>
+                <label for="data_retention" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.data_retention_period') }}</label>
                 <select id="data_retention" name="data_retention"
                         class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
-                    <option value="forever" {% if settings.data_retention == 'forever' or not settings.data_retention %}selected{% endif %}>Keep all entries forever</option>
-                    <option value="2years" {% if settings.data_retention == '2years' %}selected{% endif %}>Keep entries for 2 years</option>
-                    <option value="1year" {% if settings.data_retention == '1year' %}selected{% endif %}>Keep entries for 1 year</option>
+                    <option value="forever" {% if settings.data_retention == 'forever' or not settings.data_retention %}selected{% endif %}>{{ t('ui.settings.retention.keep_forever') }}</option>
+                    <option value="2years" {% if settings.data_retention == '2years' %}selected{% endif %}>{{ t('ui.settings.retention.keep_2y') }}</option>
+                    <option value="1year" {% if settings.data_retention == '1year' %}selected{% endif %}>{{ t('ui.settings.retention.keep_1y') }}</option>
                 </select>
-                <p class="text-[11px] text-surface-400 mt-1">Entries older than this will be automatically deleted. Cleanup runs on app startup.</p>
+                <p class="text-[11px] text-surface-400 mt-1">{{ t('ui.settings.retention_hint') }}</p>
             </div>
         </div>
 
         <!-- Writing Preferences -->
         <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6 space-y-5">
-            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">Writing Preferences</h2>
+            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">{{ t('ui.settings.writing_preferences') }}</h2>
             <div class="grid gap-4 sm:grid-cols-2">
                 <div>
-                    <label for="default_entry_type" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Default entry type</label>
+                    <label for="default_entry_type" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.default_entry_type') }}</label>
                     <select id="default_entry_type" name="default_entry_type"
                             class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
-                        <option value="blank" {% if settings.default_entry_type == 'blank' %}selected{% endif %}>Blank entry</option>
-                        <option value="framework" {% if settings.default_entry_type == 'framework' %}selected{% endif %}>Framework</option>
-                        <option value="prompt" {% if settings.default_entry_type == 'prompt' %}selected{% endif %}>Prompt</option>
+                        <option value="blank" {% if settings.default_entry_type == 'blank' %}selected{% endif %}>{{ t('ui.settings.entry_type.blank') }}</option>
+                        <option value="framework" {% if settings.default_entry_type == 'framework' %}selected{% endif %}>{{ t('ui.settings.entry_type.framework') }}</option>
+                        <option value="prompt" {% if settings.default_entry_type == 'prompt' %}selected{% endif %}>{{ t('ui.settings.entry_type.prompt') }}</option>
                     </select>
                 </div>
                 <div>
-                    <label for="auto_save_interval" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Auto-save interval</label>
+                    <label for="auto_save_interval" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.auto_save_interval') }}</label>
                     <select id="auto_save_interval" name="auto_save_interval"
                             class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
-                        <option value="15" {% if settings.auto_save_interval == '15' %}selected{% endif %}>Every 15 seconds</option>
-                        <option value="30" {% if settings.auto_save_interval == '30' %}selected{% endif %}>Every 30 seconds</option>
-                        <option value="60" {% if settings.auto_save_interval == '60' %}selected{% endif %}>Every 60 seconds</option>
-                        <option value="disabled" {% if settings.auto_save_interval == 'disabled' %}selected{% endif %}>Disabled</option>
+                        <option value="15" {% if settings.auto_save_interval == '15' %}selected{% endif %}>{{ t('ui.settings.auto_save.15') }}</option>
+                        <option value="30" {% if settings.auto_save_interval == '30' %}selected{% endif %}>{{ t('ui.settings.auto_save.30') }}</option>
+                        <option value="60" {% if settings.auto_save_interval == '60' %}selected{% endif %}>{{ t('ui.settings.auto_save.60') }}</option>
+                        <option value="disabled" {% if settings.auto_save_interval == 'disabled' %}selected{% endif %}>{{ t('ui.settings.auto_save.disabled') }}</option>
                     </select>
                 </div>
             </div>
@@ -140,10 +140,10 @@
 
         <!-- AI & Analysis -->
         <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6 space-y-5">
-            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">AI &amp; Analysis</h2>
+            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">{{ t('ui.settings.ai_analysis') }}</h2>
             <div class="grid gap-4 sm:grid-cols-2">
                 <div>
-                    <label for="ollama_model" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Ollama model</label>
+                    <label for="ollama_model" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.ollama_model') }}</label>
                     {% if ollama_models %}
                     <select id="ollama_model" name="ollama_model"
                             class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
@@ -160,24 +160,24 @@
                            placeholder="llama3.2"
                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
                     {% endif %}
-                    <p class="text-xs text-surface-400 mt-1">Pull models with <code>ollama pull &lt;model&gt;</code></p>
+                    <p class="text-xs text-surface-400 mt-1">{{ t('ui.settings.ollama_pull_hint') }} <code>ollama pull &lt;model&gt;</code></p>
                 </div>
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
                 <label class="flex items-center justify-between border border-surface-200 dark:border-surface-700 rounded-lg px-4 py-3">
-                    <span class="text-sm text-surface-700 dark:text-surface-300">Emotion analysis</span>
+                    <span class="text-sm text-surface-700 dark:text-surface-300">{{ t('ui.settings.emotion_analysis') }}</span>
                     <input type="checkbox" name="emotion_analysis_enabled" value="true" {% if settings.emotion_analysis_enabled == 'true' %}checked{% endif %} class="rounded border-surface-300 text-primary-600 focus:ring-primary-500">
                 </label>
                 <label class="flex items-center justify-between border border-surface-200 dark:border-surface-700 rounded-lg px-4 py-3">
-                    <span class="text-sm text-surface-700 dark:text-surface-300">Go Deeper suggestions</span>
+                    <span class="text-sm text-surface-700 dark:text-surface-300">{{ t('ui.settings.go_deeper_suggestions') }}</span>
                     <input type="checkbox" name="go_deeper_enabled" value="true" {% if settings.go_deeper_enabled == 'true' %}checked{% endif %} class="rounded border-surface-300 text-primary-600 focus:ring-primary-500">
                 </label>
                 <label class="flex items-center justify-between border border-surface-200 dark:border-surface-700 rounded-lg px-4 py-3">
-                    <span class="text-sm text-surface-700 dark:text-surface-300">Past Memories sidebar</span>
+                    <span class="text-sm text-surface-700 dark:text-surface-300">{{ t('ui.settings.past_memories_sidebar') }}</span>
                     <input type="checkbox" name="past_memories_enabled" value="true" {% if settings.past_memories_enabled == 'true' %}checked{% endif %} class="rounded border-surface-300 text-primary-600 focus:ring-primary-500">
                 </label>
                 <label class="flex items-center justify-between border border-surface-200 dark:border-surface-700 rounded-lg px-4 py-3">
-                    <span class="text-sm text-surface-700 dark:text-surface-300">Artwork generation</span>
+                    <span class="text-sm text-surface-700 dark:text-surface-300">{{ t('ui.settings.artwork_generation') }}</span>
                     <input type="checkbox" name="artwork_enabled" value="true" {% if settings.artwork_enabled == 'true' %}checked{% endif %} class="rounded border-surface-300 text-primary-600 focus:ring-primary-500">
                 </label>
             </div>
@@ -186,10 +186,10 @@
 
         <!-- Voice & Transcription -->
         <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6 space-y-5">
-            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">Voice &amp; Transcription</h2>
+            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">{{ t('ui.settings.voice_transcription') }}</h2>
             <div class="grid gap-4 sm:grid-cols-2">
                 <div>
-                    <label for="whisper_model" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Whisper model size</label>
+                    <label for="whisper_model" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.whisper_model_size') }}</label>
                     <select id="whisper_model" name="whisper_model"
                             class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
                         {% for size in whisper_options %}
@@ -198,20 +198,20 @@
                     </select>
                 </div>
                 <div>
-                    <label for="voice_language" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Voice language preference</label>
+                    <label for="voice_language" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.voice_language_preference') }}</label>
                     <select id="voice_language" name="voice_language"
                             class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
-                        <option value="auto" {% if settings.voice_language == 'auto' %}selected{% endif %}>Auto-detect</option>
-                        <option value="en" {% if settings.voice_language == 'en' %}selected{% endif %}>English</option>
-                        <option value="es" {% if settings.voice_language == 'es' %}selected{% endif %}>Spanish</option>
-                        <option value="fr" {% if settings.voice_language == 'fr' %}selected{% endif %}>French</option>
-                        <option value="de" {% if settings.voice_language == 'de' %}selected{% endif %}>German</option>
-                        <option value="ja" {% if settings.voice_language == 'ja' %}selected{% endif %}>Japanese</option>
+                        <option value="auto" {% if settings.voice_language == 'auto' %}selected{% endif %}>{{ t('ui.settings.voice_lang.auto') }}</option>
+                        <option value="en" {% if settings.voice_language == 'en' %}selected{% endif %}>{{ t('ui.settings.voice_lang.en') }}</option>
+                        <option value="es" {% if settings.voice_language == 'es' %}selected{% endif %}>{{ t('ui.settings.voice_lang.es') }}</option>
+                        <option value="fr" {% if settings.voice_language == 'fr' %}selected{% endif %}>{{ t('ui.settings.voice_lang.fr') }}</option>
+                        <option value="de" {% if settings.voice_language == 'de' %}selected{% endif %}>{{ t('ui.settings.voice_lang.de') }}</option>
+                        <option value="ja" {% if settings.voice_language == 'ja' %}selected{% endif %}>{{ t('ui.settings.voice_lang.ja') }}</option>
                     </select>
                 </div>
             </div>
             <label class="flex items-center justify-between border border-surface-200 dark:border-surface-700 rounded-lg px-4 py-3">
-                <span class="text-sm text-surface-700 dark:text-surface-300">Auto-start transcription editing</span>
+                <span class="text-sm text-surface-700 dark:text-surface-300">{{ t('ui.settings.auto_start_transcription_editing') }}</span>
                 <input type="checkbox" name="voice_auto_edit" value="true" {% if settings.voice_auto_edit == 'true' %}checked{% endif %} class="rounded border-surface-300 text-primary-600 focus:ring-primary-500">
             </label>
         </div>
@@ -219,47 +219,55 @@
         <!-- Appearance -->
         <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6 space-y-5">
             <div class="flex flex-wrap items-center justify-between gap-3">
-                <h2 class="text-lg font-semibold text-surface-900 dark:text-white">Appearance</h2>
-                <span class="text-xs text-surface-400">Live preview updates instantly</span>
+                <h2 class="text-lg font-semibold text-surface-900 dark:text-white">{{ t('ui.settings.appearance') }}</h2>
+                <span class="text-xs text-surface-400">{{ t('ui.settings.live_preview_hint') }}</span>
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
                 <div>
-                    <label for="theme_mode" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Theme</label>
+                    <label for="theme_mode" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.theme') }}</label>
                     <select id="theme_mode" name="theme_mode"
                             class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
-                        <option value="light" {% if settings.theme_mode == 'light' %}selected{% endif %}>Light</option>
-                        <option value="dark" {% if settings.theme_mode == 'dark' %}selected{% endif %}>Dark</option>
-                        <option value="auto" {% if settings.theme_mode == 'auto' %}selected{% endif %}>Auto</option>
+                        <option value="light" {% if settings.theme_mode == 'light' %}selected{% endif %}>{{ t('ui.settings.theme.light') }}</option>
+                        <option value="dark" {% if settings.theme_mode == 'dark' %}selected{% endif %}>{{ t('ui.settings.theme.dark') }}</option>
+                        <option value="auto" {% if settings.theme_mode == 'auto' %}selected{% endif %}>{{ t('ui.settings.theme.auto') }}</option>
                     </select>
                 </div>
                 <div>
-                    <label for="font_size" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Font size</label>
+                    <label for="font_size" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.font_size') }}</label>
                     <select id="font_size" name="font_size"
                             class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
-                        <option value="small" {% if settings.font_size == 'small' %}selected{% endif %}>Small</option>
-                        <option value="medium" {% if settings.font_size == 'medium' %}selected{% endif %}>Medium</option>
-                        <option value="large" {% if settings.font_size == 'large' %}selected{% endif %}>Large</option>
+                        <option value="small" {% if settings.font_size == 'small' %}selected{% endif %}>{{ t('ui.settings.size.small') }}</option>
+                        <option value="medium" {% if settings.font_size == 'medium' %}selected{% endif %}>{{ t('ui.settings.size.medium') }}</option>
+                        <option value="large" {% if settings.font_size == 'large' %}selected{% endif %}>{{ t('ui.settings.size.large') }}</option>
                     </select>
                 </div>
                 <div>
-                    <label for="spacing_density" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Spacing</label>
+                    <label for="spacing_density" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.spacing') }}</label>
                     <select id="spacing_density" name="spacing_density"
                             class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
-                        <option value="compact" {% if settings.spacing_density == 'compact' %}selected{% endif %}>Compact</option>
-                        <option value="comfortable" {% if settings.spacing_density == 'comfortable' %}selected{% endif %}>Comfortable</option>
+                        <option value="compact" {% if settings.spacing_density == 'compact' %}selected{% endif %}>{{ t('ui.settings.spacing.compact') }}</option>
+                        <option value="comfortable" {% if settings.spacing_density == 'comfortable' %}selected{% endif %}>{{ t('ui.settings.spacing.comfortable') }}</option>
                     </select>
                 </div>
                 <div>
-                    <label for="journal_view" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Journal feed view</label>
+                    <label for="journal_view" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.journal_feed_view') }}</label>
                     <select id="journal_view" name="journal_view"
                             class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
-                        <option value="grid" {% if settings.journal_view == 'grid' %}selected{% endif %}>Grid</option>
-                        <option value="list" {% if settings.journal_view == 'list' %}selected{% endif %}>List</option>
+                        <option value="grid" {% if settings.journal_view == 'grid' %}selected{% endif %}>{{ t('ui.settings.view.grid') }}</option>
+                        <option value="list" {% if settings.journal_view == 'list' %}selected{% endif %}>{{ t('ui.settings.view.list') }}</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="ui_language" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.ui_language') }}</label>
+                    <select id="ui_language" name="ui_language"
+                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
+                        <option value="de" {% if settings.ui_language == 'de' %}selected{% endif %}>{{ t('ui.settings.lang.de') }}</option>
+                        <option value="en" {% if settings.ui_language == 'en' %}selected{% endif %}>{{ t('ui.settings.lang.en') }}</option>
                     </select>
                 </div>
             </div>
             <div>
-                <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">Color scheme</label>
+                <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">{{ t('ui.settings.color_scheme') }}</label>
                 <div class="flex flex-wrap gap-3" id="color-theme-picker">
                     {% for theme in theme_options %}
                     <label class="cursor-pointer">
@@ -273,35 +281,35 @@
                 </div>
             </div>
             <div id="appearance-preview" class="rounded-xl border border-surface-200 dark:border-surface-700 p-4 bg-surface-50 dark:bg-surface-900/30">
-                <p class="text-xs text-surface-400 mb-2">Preview</p>
+                <p class="text-xs text-surface-400 mb-2">{{ t('ui.settings.preview') }}</p>
                 <div class="rounded-lg border border-surface-200 dark:border-surface-700 p-4 bg-white dark:bg-surface-800">
-                    <h3 class="font-semibold text-surface-900 dark:text-white">Evening Reflection</h3>
-                    <p class="text-sm text-surface-500 dark:text-surface-400 mt-1">A quick preview of spacing, font size, and theme.</p>
-                    <button class="mt-3 text-xs font-medium px-3 py-2 rounded-lg bg-primary-600 text-white">Primary Action</button>
+                    <h3 class="font-semibold text-surface-900 dark:text-white">{{ t('ui.settings.preview_title') }}</h3>
+                    <p class="text-sm text-surface-500 dark:text-surface-400 mt-1">{{ t('ui.settings.preview_text') }}</p>
+                    <button class="mt-3 text-xs font-medium px-3 py-2 rounded-lg bg-primary-600 text-white">{{ t('ui.settings.primary_action') }}</button>
                 </div>
             </div>
         </div>
 
         <!-- Privacy & Data -->
         <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6 space-y-5">
-            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">Privacy &amp; Data</h2>
+            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">{{ t('ui.settings.privacy_data') }}</h2>
             <label class="flex items-center justify-between border border-surface-200 dark:border-surface-700 rounded-lg px-4 py-3">
-                <span class="text-sm text-surface-700 dark:text-surface-300">Local-only mode (disable external APIs)</span>
+                <span class="text-sm text-surface-700 dark:text-surface-300">{{ t('ui.settings.local_only_mode') }}</span>
                 <input type="checkbox" name="local_only_mode" value="true" {% if settings.local_only_mode == 'true' %}checked{% endif %} class="rounded border-surface-300 text-primary-600 focus:ring-primary-500">
             </label>
             <div class="grid gap-4 sm:grid-cols-2">
                 <div>
-                    <label for="backup_location" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Automatic backups location</label>
+                    <label for="backup_location" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.automatic_backups_location') }}</label>
                     <input type="text" id="backup_location" name="backup_location"
                            value="{{ settings.backup_location }}"
                            placeholder="C:\\Users\\you\\Documents\\Journal Backups"
                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
                 </div>
                 <div>
-                    <label for="retention_period" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Data retention period</label>
+                    <label for="retention_period" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.data_retention_period') }}</label>
                     <select id="retention_period" name="retention_period"
                             class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-200">
-                        <option value="all" {% if settings.retention_period == 'all' %}selected{% endif %}>Keep all</option>
+                        <option value="all" {% if settings.retention_period == 'all' %}selected{% endif %}>{{ t('ui.settings.retention.keep_all') }}</option>
                         <option value="1_year" {% if settings.retention_period == '1_year' %}selected{% endif %}>1 year</option>
                         <option value="2_years" {% if settings.retention_period == '2_years' %}selected{% endif %}>2 years</option>
                     </select>
@@ -311,78 +319,78 @@
 
         <!-- Advanced -->
         <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6 space-y-5">
-            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">Advanced</h2>
+            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">{{ t('ui.settings.advanced') }}</h2>
             <div class="grid gap-4 sm:grid-cols-2">
                 <div>
-                    <label for="db_path" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Database path</label>
+                    <label for="db_path" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.database_path') }}</label>
                     <input type="text" id="db_path" name="db_path" value="{{ settings.db_path }}"
                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
                 </div>
                 <div>
-                    <label for="chroma_path" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">ChromaDB path</label>
+                    <label for="chroma_path" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.chromadb_path') }}</label>
                     <input type="text" id="chroma_path" name="chroma_path" value="{{ settings.chroma_path }}"
                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
                 </div>
                 <div>
-                    <label for="model_cache_location" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Model cache location</label>
+                    <label for="model_cache_location" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.model_cache_location') }}</label>
                     <input type="text" id="model_cache_location" name="model_cache_location" value="{{ settings.model_cache_location }}"
                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
                 </div>
                 
                 <!-- LLM Provider Selection -->
                 <div class="sm:col-span-2">
-                    <label for="llm_provider" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">LLM Provider</label>
+                    <label for="llm_provider" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.llm_provider') }}</label>
                     <select id="llm_provider" name="llm_provider" 
                             class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
                         <option value="ollama" {% if settings.llm_provider == 'ollama' %}selected{% endif %}>Ollama</option>
                         <option value="lmstudio" {% if settings.llm_provider == 'lmstudio' %}selected{% endif %}>LM Studio</option>
                     </select>
-                    <p class="mt-1 text-xs text-surface-500">Choose which LLM backend to use for AI features</p>
+                    <p class="mt-1 text-xs text-surface-500">{{ t('ui.settings.llm_provider_hint') }}</p>
                 </div>
                 
                 <!-- Ollama Settings -->
                 <div>
-                    <label for="ollama_base_url" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Ollama endpoint</label>
+                    <label for="ollama_base_url" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.ollama_endpoint') }}</label>
                     <input type="text" id="ollama_base_url" name="ollama_base_url" value="{{ settings.ollama_base_url }}"
                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
                 </div>
                 
                 <!-- LM Studio Settings -->
                 <div>
-                    <label for="lmstudio_base_url" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">LM Studio endpoint</label>
+                    <label for="lmstudio_base_url" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.lmstudio_endpoint') }}</label>
                     <input type="text" id="lmstudio_base_url" name="lmstudio_base_url" value="{{ settings.lmstudio_base_url }}"
                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
                 </div>
                 <div>
-                    <label for="lmstudio_model" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">LM Studio model name</label>
+                    <label for="lmstudio_model" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.lmstudio_model_name') }}</label>
                     <input type="text" id="lmstudio_model" name="lmstudio_model" value="{{ settings.lmstudio_model }}"
                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
-                    <p class="mt-1 text-xs text-surface-500">Model ID as shown in LM Studio (e.g., 'llama-3.2-3b-instruct')</p>
+                    <p class="mt-1 text-xs text-surface-500">{{ t('ui.settings.lmstudio_model_hint') }}</p>
                 </div>
                 
                 <div>
-                    <label for="sd_endpoint" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Stable Diffusion endpoint</label>
+                    <label for="sd_endpoint" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.sd_endpoint') }}</label>
                     <input type="text" id="sd_endpoint" name="sd_endpoint" value="{{ settings.sd_endpoint }}"
                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
                 </div>
                 <label class="flex items-center justify-between border border-surface-200 dark:border-surface-700 rounded-lg px-4 py-3 sm:col-span-2">
-                    <span class="text-sm text-surface-700 dark:text-surface-300">Debug mode</span>
+                    <span class="text-sm text-surface-700 dark:text-surface-300">{{ t('ui.settings.debug_mode') }}</span>
                     <input type="checkbox" name="debug_mode" value="true" {% if settings.debug_mode == 'true' %}checked{% endif %} class="rounded border-surface-300 text-primary-600 focus:ring-primary-500">
                 </label>
             </div>
-            <p class="text-xs text-surface-400">Advanced changes require an app restart.</p>
+            <p class="text-xs text-surface-400">{{ t('ui.settings.advanced_restart_hint') }}</p>
         </div>
 
         <div class="flex items-center justify-between">
-            <button type="submit" class="bg-primary-600 text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-primary-700 transition">Save Settings</button>
+            <button type="submit" class="bg-primary-600 text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-primary-700 transition">{{ t('ui.settings.save_settings') }}</button>
         </div>
     </form>
 
     <!-- Framework Builder -->
     <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6 space-y-5">
         <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">Custom Frameworks</h2>
-            <span class="text-xs text-surface-400">{{ frameworks | length }} total</span>
+            <h2 class="text-lg font-semibold text-surface-900 dark:text-white">{{ t('ui.settings.custom_frameworks') }}</h2>
+            <span class="text-xs text-surface-400">{{ t('ui.settings.framework_total', count=frameworks|length) }}</span>
         </div>
 
         {% if framework_message %}
@@ -396,36 +404,36 @@
             <input type="hidden" name="action" value="add_framework">
             <div class="grid gap-4 md:grid-cols-2">
                 <div>
-                    <label for="framework_name" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Framework Name</label>
+                    <label for="framework_name" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.framework_name') }}</label>
                     <input type="text" id="framework_name" name="framework_name"
                            placeholder="Relationship Reset"
                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
                 </div>
                 <div>
-                    <label for="framework_category" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Category</label>
+                    <label for="framework_category" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.category') }}</label>
                     <input type="text" id="framework_category" name="framework_category"
                            placeholder="relationships"
                            class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
                 </div>
             </div>
             <div>
-                <label for="framework_description" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Description</label>
+                <label for="framework_description" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.description') }}</label>
                 <input type="text" id="framework_description" name="framework_description"
                        placeholder="A gentle reset for hard conversations."
                        class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
             </div>
             <div>
-                <label for="framework_questions" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Questions (one per line)</label>
+                <label for="framework_questions" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">{{ t('ui.settings.questions_one_per_line') }}</label>
                 <textarea id="framework_questions" name="framework_questions" rows="5"
                           placeholder="What happened?\nWhat do I feel?\nWhat do I need?"
                           class="w-full rounded-lg border border-surface-300 dark:border-surface-600 px-4 py-2.5 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"></textarea>
-                <p class="text-xs text-surface-400 mt-1">We will convert each line into a framework question with placeholders.</p>
+                <p class="text-xs text-surface-400 mt-1">{{ t('ui.settings.questions_hint') }}</p>
             </div>
-            <button type="submit" class="bg-primary-600 text-white font-semibold px-5 py-2.5 rounded-lg hover:bg-primary-700 transition">Save Framework</button>
+            <button type="submit" class="bg-primary-600 text-white font-semibold px-5 py-2.5 rounded-lg hover:bg-primary-700 transition">{{ t('ui.settings.save_framework') }}</button>
         </form>
 
         <div class="pt-2">
-            <h3 class="text-sm font-semibold text-surface-900 dark:text-white mb-3">Available Frameworks</h3>
+            <h3 class="text-sm font-semibold text-surface-900 dark:text-white mb-3">{{ t('ui.settings.available_frameworks') }}</h3>
             <div class="space-y-2">
                 {% for fw in frameworks %}
                 <div class="flex items-center justify-between rounded-lg border border-surface-200 dark:border-surface-700 px-3 py-2">
@@ -443,10 +451,10 @@
     <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-6 space-y-5">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-                <h2 class="text-lg font-semibold text-surface-900 dark:text-white">AI System Prompts</h2>
+                <h2 class="text-lg font-semibold text-surface-900 dark:text-white">{{ t('ui.settings.ai_system_prompts') }}</h2>
                 <p class="text-sm text-surface-500 dark:text-surface-400 mt-0.5">
                     Customize AI instructions organized by where they are used in the app. 
-                    <span class="hidden sm:inline">Click a category to expand and edit prompts. Changes are saved individually.</span>
+                    <span class="hidden sm:inline">{{ t('ui.settings.prompts_expand_hint') }}</span>
                 </p>
             </div>
             <span class="text-xs text-surface-400">{{ system_prompts | length }} prompts</span>
@@ -454,7 +462,7 @@
 
         <!-- Quick Reference Legend -->
         <div class="bg-surface-50 dark:bg-surface-900/30 rounded-lg p-3 border border-surface-200 dark:border-surface-700">
-            <p class="text-xs text-surface-500 dark:text-surface-400 mb-2 font-medium">Quick Reference:</p>
+            <p class="text-xs text-surface-500 dark:text-surface-400 mb-2 font-medium">{{ t('ui.settings.quick_reference') }}</p>
             <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-surface-500 dark:text-surface-400">
                 <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-primary-500"></span> 📓 Entry: Analysis, emotions, artwork</span>
                 <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500"></span> 🏠 Dashboard: Daily questions & suggestions</span>
@@ -505,7 +513,7 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-2 shrink-0 ml-4">
-                            <span class="prompt-dirty-badge hidden text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">Unsaved</span>
+                            <span class="prompt-dirty-badge hidden text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">{{ t('ui.settings.unsaved') }}</span>
                             {% if sp.last_updated %}
                             <span class="text-[10px] text-surface-400">{{ sp.last_updated[:10] }}</span>
                             {% endif %}
@@ -555,9 +563,38 @@
 
 {% block scripts %}
 <script>
+    const i18nSettings = {
+        checking: {{ t('ui.settings.checking') | tojson }},
+        refresh: {{ t('ui.settings.refresh') | tojson }},
+        refreshFailed: {{ t('ui.settings.refresh_failed') | tojson }},
+        generating: {{ t('ui.settings.generating') | tojson }},
+        journalExportTitle: {{ t('ui.settings.journal_export_title') | tojson }},
+        entriesLabel: {{ t('ui.settings.entries_label', count='__COUNT__') | tojson }},
+        generatedDate: {{ t('ui.settings.generated_date', date='__DATE__') | tojson }},
+        untitledEntry: {{ t('ui.settings.untitled_entry') | tojson }},
+        wordsLabel: {{ t('ui.journal.words', count='__COUNT__') | tojson }},
+        emotionsPrefix: {{ t('ui.settings.emotions_prefix') | tojson }},
+        tagsPrefix: {{ t('ui.settings.tags_prefix') | tojson }},
+        entryOfTotal: {{ t('ui.settings.entry_of_total', index='__INDEX__', total='__TOTAL__') | tojson }},
+        pdfGenerationFailed: {{ t('ui.settings.pdf_generation_failed') | tojson }},
+        typeDeleteConfirm: {{ t('ui.settings.type_delete_confirm') | tojson }},
+        deleteFailed: {{ t('ui.settings.delete_failed') | tojson }},
+        importFailed: {{ t('ui.settings.import_failed') | tojson }},
+        promptEmpty: {{ t('ui.settings.prompt_empty') | tojson }},
+        saving: {{ t('ui.settings.saving') | tojson }},
+        save: {{ t('ui.settings.save_short') | tojson }},
+        saveFailed: {{ t('ui.settings.save_failed') | tojson }},
+        promptSaved: {{ t('ui.settings.prompt_saved') | tojson }},
+        networkSaveError: {{ t('ui.settings.network_save_error') | tojson }},
+        resetConfirm: {{ t('ui.settings.reset_prompt_confirm') | tojson }},
+        resetFailed: {{ t('ui.settings.reset_failed') | tojson }},
+        promptReset: {{ t('ui.settings.prompt_reset') | tojson }},
+        networkResetError: {{ t('ui.settings.network_reset_error') | tojson }}
+    };
+
     async function refreshServices() {
         const btn = document.getElementById('refresh-btn');
-        btn.textContent = 'Checking...';
+        btn.textContent = i18nSettings.checking;
         try {
             const resp = await fetch('/api/services/refresh', { method: 'POST' });
             const data = await resp.json();
@@ -572,9 +609,9 @@
                 </div>
             `).join('');
         } catch (e) {
-            alert('Failed to refresh service status.');
+            alert(i18nSettings.refreshFailed);
         }
-        btn.textContent = 'Refresh';
+        btn.textContent = i18nSettings.refresh;
     }
 
     // Data export
@@ -582,7 +619,7 @@
         btn.addEventListener('click', async () => {
             const format = btn.getAttribute('data-export-format');
             if (format === 'pdf') {
-                btn.textContent = 'Generating...';
+                btn.textContent = i18nSettings.generating;
                 btn.disabled = true;
                 try {
                     const resp = await fetch('/api/data/export?format=json');
@@ -601,11 +638,11 @@
                     // Title page
                     doc.setFontSize(24);
                     doc.setFont('helvetica', 'bold');
-                    doc.text('Journal Export', pageWidth / 2, 200, { align: 'center' });
+                    doc.text(i18nSettings.journalExportTitle, pageWidth / 2, 200, { align: 'center' });
                     doc.setFontSize(12);
                     doc.setFont('helvetica', 'normal');
-                    doc.text(`${entries.length} entries`, pageWidth / 2, 230, { align: 'center' });
-                    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 250, { align: 'center' });
+                    doc.text(i18nSettings.entriesLabel.replace('__COUNT__', entries.length), pageWidth / 2, 230, { align: 'center' });
+                    doc.text(i18nSettings.generatedDate.replace('__DATE__', new Date().toLocaleDateString()), pageWidth / 2, 250, { align: 'center' });
 
                     // Entry pages
                     entries.forEach((entry, idx) => {
@@ -615,7 +652,7 @@
                         // Entry header
                         doc.setFontSize(14);
                         doc.setFont('helvetica', 'bold');
-                        const title = entry.summary || 'Untitled Entry';
+                        const title = entry.summary || i18nSettings.untitledEntry;
                         const titleLines = doc.splitTextToSize(title, contentWidth);
                         doc.text(titleLines, margin, y);
                         y += titleLines.length * 18;
@@ -626,7 +663,7 @@
                         doc.setTextColor(100);
                         const meta = [
                             entry.created_at ? entry.created_at.substring(0, 10) : '',
-                            entry.word_count ? `${entry.word_count} words` : '',
+                            entry.word_count ? i18nSettings.wordsLabel.replace('__COUNT__', entry.word_count) : '',
                             entry.entry_type || ''
                         ].filter(Boolean).join(' • ');
                         doc.text(meta, margin, y);
@@ -634,14 +671,14 @@
 
                         // Emotions
                         if (entry.emotions && entry.emotions.length) {
-                            const emoText = 'Emotions: ' + entry.emotions.map(e => `${e.emotion} (${e.intensity})`).join(', ');
+                            const emoText = i18nSettings.emotionsPrefix + entry.emotions.map(e => `${e.emotion} (${e.intensity})`).join(', ');
                             doc.text(emoText, margin, y);
                             y += 16;
                         }
 
                         // Tags
                         if (entry.tags && entry.tags.length) {
-                            doc.text('Tags: ' + entry.tags.join(', '), margin, y);
+                            doc.text(i18nSettings.tagsPrefix + entry.tags.join(', '), margin, y);
                             y += 16;
                         }
 
@@ -665,13 +702,13 @@
                         // Page number
                         doc.setFontSize(9);
                         doc.setTextColor(150);
-                        doc.text(`Entry ${idx + 1} of ${entries.length}`, pageWidth / 2, pageHeight - 30, { align: 'center' });
+                        doc.text(i18nSettings.entryOfTotal.replace('__INDEX__', idx + 1).replace('__TOTAL__', entries.length), pageWidth / 2, pageHeight - 30, { align: 'center' });
                         doc.setTextColor(0);
                     });
 
                     doc.save('journal_export.pdf');
                 } catch (e) {
-                    alert('PDF generation failed: ' + e.message);
+                    alert(i18nSettings.pdfGenerationFailed + e.message);
                 }
                 btn.textContent = 'PDF';
                 btn.disabled = false;
@@ -685,7 +722,7 @@
     const deleteBtn = document.getElementById('delete-all-data');
     if (deleteBtn) {
         deleteBtn.addEventListener('click', async () => {
-            const confirmText = prompt('Type DELETE to remove all journal data.');
+            const confirmText = prompt(i18nSettings.typeDeleteConfirm);
             if (confirmText !== 'DELETE') return;
             const resp = await fetch('/api/data/delete', {
                 method: 'POST',
@@ -695,7 +732,7 @@
             if (resp.ok) {
                 window.location.reload();
             } else {
-                alert('Delete failed.');
+                alert(i18nSettings.deleteFailed);
             }
         });
     }
@@ -717,7 +754,7 @@
             const resp = await fetch('/api/settings/import', { method: 'POST', body: formData });
             const data = await resp.json();
             if (!resp.ok) {
-                alert(data.error || 'Import failed.');
+                alert(data.error || i18nSettings.importFailed);
                 return;
             }
             if (data.restart_warnings && data.restart_warnings.length) {
@@ -859,11 +896,11 @@
             var saveBtn = container.querySelector('.prompt-save-btn');
             var promptText = textarea.value.trim();
             if (!promptText) {
-                showToast('Prompt text cannot be empty.', 'error');
+                showToast(i18nSettings.promptEmpty, 'error');
                 return;
             }
             saveBtn.disabled = true;
-            saveBtn.textContent = 'Saving...';
+            saveBtn.textContent = i18nSettings.saving;
             fetch('/api/system-prompts/' + key, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -872,33 +909,33 @@
             .then(function(resp) { return resp.json().then(function(data) { return { ok: resp.ok, data: data }; }); })
             .then(function(result) {
                 if (!result.ok) {
-                    showToast(result.data.error || 'Save failed.', 'error');
-                    saveBtn.textContent = 'Save';
+                    showToast(result.data.error || i18nSettings.saveFailed, 'error');
+                    saveBtn.textContent = i18nSettings.save;
                     saveBtn.disabled = false;
                     return;
                 }
                 textarea.dataset.original = promptText;
                 var badge = container.querySelector('.prompt-dirty-badge');
                 if (badge) badge.classList.add('hidden');
-                saveBtn.textContent = 'Save';
-                showToast('Prompt saved.', 'success');
+                saveBtn.textContent = i18nSettings.save;
+                showToast(i18nSettings.promptSaved, 'success');
             })
             .catch(function() {
-                showToast('Network error saving prompt.', 'error');
-                saveBtn.textContent = 'Save';
+                showToast(i18nSettings.networkSaveError, 'error');
+                saveBtn.textContent = i18nSettings.save;
                 saveBtn.disabled = false;
             });
         }
 
         function resetPrompt(key) {
-            if (!confirm('Reset this prompt to its default? Your customizations will be lost.')) return;
+            if (!confirm(i18nSettings.resetConfirm)) return;
             var container = document.querySelector('[data-prompt-key="' + key + '"]');
             if (!container) return;
             fetch('/api/system-prompts/' + key + '/reset', { method: 'POST' })
             .then(function(resp) { return resp.json().then(function(data) { return { ok: resp.ok, data: data }; }); })
             .then(function(result) {
                 if (!result.ok) {
-                    showToast(result.data.error || 'Reset failed.', 'error');
+                    showToast(result.data.error || i18nSettings.resetFailed, 'error');
                     return;
                 }
                 var textarea = container.querySelector('.prompt-textarea');
@@ -909,10 +946,10 @@
                 if (badge) badge.classList.add('hidden');
                 var saveBtn = container.querySelector('.prompt-save-btn');
                 if (saveBtn) saveBtn.disabled = true;
-                showToast('Prompt reset to default.', 'success');
+                showToast(i18nSettings.promptReset, 'success');
             })
             .catch(function() {
-                showToast('Network error resetting prompt.', 'error');
+                showToast(i18nSettings.networkResetError, 'error');
             });
         }
 

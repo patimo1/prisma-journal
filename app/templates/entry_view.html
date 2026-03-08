@@ -1,16 +1,16 @@
 {% extends "base.html" %}
-{% block title %}{{ entry.title or entry.summary or 'Entry' }}{% endblock %}
+{% block title %}{{ entry.title or entry.summary or t('ui.entry.entry_fallback') }}{% endblock %}
 
 {% block content %}
 <div class="max-w-3xl mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-start mb-8">
         <div>
-            <h1 class="text-3xl font-bold text-surface-900">{{ entry.title or entry.summary or 'Journal Entry' }}</h1>
+            <h1 class="text-3xl font-bold text-surface-900">{{ entry.title or t('ui.entry.journal_entry') }}</h1>
             <div class="flex items-center gap-3 mt-2 text-sm text-surface-500">
                 <span>{{ entry.created_at[:10] }}</span>
                 <span class="bg-surface-100 px-2 py-0.5 rounded-full text-xs">{{ entry.entry_type }}</span>
-                <span class="text-xs">{{ entry.word_count }} words</span>
+                <span class="text-xs">{{ t('ui.journal.words', count=entry.word_count) }}</span>
                 {% if entry.emotions %}
                     {% for em in entry.emotions %}
                     <span class="bg-surface-100 px-2 py-0.5 rounded-full text-xs">{{ em.emotion }} ({{ em.intensity }})</span>
@@ -24,10 +24,10 @@
             </div>
         </div>
         <div class="flex gap-2">
-            <a href="/ask?entry_id={{ entry.id }}" class="bg-surface-900 text-white text-sm font-medium px-4 py-2 rounded-lg transition">Discuss</a>
-            <a href="/entry/{{ entry.id }}/edit" class="bg-surface-100 hover:bg-surface-200 text-surface-700 text-sm font-medium px-4 py-2 rounded-lg transition">Edit</a>
-            <form method="POST" action="/entry/{{ entry.id }}/delete" onsubmit="return confirm('Delete this entry?')">
-                <button type="submit" class="bg-red-50 hover:bg-red-100 text-red-600 text-sm font-medium px-4 py-2 rounded-lg transition">Delete</button>
+            <a href="/ask?entry_id={{ entry.id }}" class="bg-surface-900 text-white text-sm font-medium px-4 py-2 rounded-lg transition">{{ t('ui.entry.discuss') }}</a>
+            <a href="/entry/{{ entry.id }}/edit" class="bg-surface-100 hover:bg-surface-200 text-surface-700 text-sm font-medium px-4 py-2 rounded-lg transition">{{ t('ui.entry.edit') }}</a>
+            <form method="POST" action="/entry/{{ entry.id }}/delete" onsubmit="return confirm('{{ t('ui.entry.delete_confirm') }}')">
+                <button type="submit" class="bg-red-50 hover:bg-red-100 text-red-600 text-sm font-medium px-4 py-2 rounded-lg transition">{{ t('ui.entry.delete') }}</button>
             </form>
         </div>
     </div>
@@ -40,16 +40,16 @@
     <!-- AI Analysis -->
     <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-8 mb-8">
         <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-semibold text-surface-900 dark:text-surface-50">AI Insights</h2>
+            <h2 class="text-lg font-semibold text-surface-900 dark:text-surface-50">{{ t('ui.entry.ai_insights') }}</h2>
             <button onclick="analyzeEntry()" id="analyze-btn" class="bg-primary-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-primary-700 transition">
-                {% if entry.summary %}Re-analyze{% else %}Analyze{% endif %}
+                {% if entry.summary %}{{ t('ui.entry.reanalyze') }}{% else %}{{ t('ui.entry.analyze') }}{% endif %}
             </button>
         </div>
         <div id="analysis-content" class="prose text-surface-700 dark:text-surface-300 text-sm whitespace-pre-wrap">
             {% if entry.summary %}
                 {{ entry.summary }}
             {% else %}
-                <p class="text-surface-400 dark:text-surface-500 italic">Click "Analyze" to get AI-powered insights about this entry.</p>
+                <p class="text-surface-400 dark:text-surface-500 italic">{{ t('ui.entry.analysis_hint') }}</p>
             {% endif %}
         </div>
     </div>
@@ -58,15 +58,15 @@
     <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-8 mb-8">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
             <div>
-                <h2 class="text-lg font-semibold text-surface-900 dark:text-surface-50">Entry Artwork</h2>
-                <p class="text-xs text-surface-400 dark:text-surface-500 mt-1">AI-generated artwork based on your entry's mood and themes. Created locally.</p>
+                <h2 class="text-lg font-semibold text-surface-900 dark:text-surface-50">{{ t('ui.entry.artwork') }}</h2>
+                <p class="text-xs text-surface-400 dark:text-surface-500 mt-1">{{ t('ui.entry.artwork_hint') }}</p>
                 {% if ui_settings and ui_settings.artwork_enabled == 'false' %}
-                <p class="text-xs text-amber-600 dark:text-amber-500 mt-1">Artwork generation is disabled in settings.</p>
+                <p class="text-xs text-amber-600 dark:text-amber-500 mt-1">{{ t('ui.entry.artwork_disabled') }}</p>
                 {% endif %}
             </div>
             <div class="flex flex-wrap items-center gap-2">
                 <button onclick="toggleAdvancedControls()" id="advanced-toggle" class="text-xs text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-300 underline">
-                    Show Advanced
+                    {{ t('ui.entry.show_advanced') }}
                 </button>
             </div>
         </div>
@@ -75,9 +75,9 @@
         <div id="advanced-controls" class="hidden mb-4 p-4 bg-surface-50 dark:bg-surface-700/50 rounded-lg">
             <div class="flex flex-wrap items-center gap-2">
                 <button onclick="generateArtwork(true)" id="regen-btn" class="bg-surface-100 dark:bg-surface-600 hover:bg-surface-200 dark:hover:bg-surface-500 text-surface-700 dark:text-surface-50 text-sm font-medium px-4 py-2 rounded-lg transition {% if ui_settings and ui_settings.artwork_enabled == 'false' %}opacity-50 cursor-not-allowed{% endif %}" {% if ui_settings and ui_settings.artwork_enabled == 'false' %}disabled{% endif %}>
-                    Regenerate with New Seed
+                    {{ t('ui.entry.regenerate_seed') }}
                 </button>
-                <span class="text-xs text-surface-400 dark:text-surface-500">Creates a completely new variation</span>
+                <span class="text-xs text-surface-400 dark:text-surface-500">{{ t('ui.entry.regenerate_hint') }}</span>
             </div>
         </div>
         
@@ -88,16 +88,16 @@
                     <img src="{{ entry.artwork_path }}" alt="Generated artwork" class="rounded-xl max-w-md" loading="lazy">
                     {% else %}
                     <div class="rounded-xl border border-dashed border-surface-200 dark:border-surface-700 p-6 text-sm text-surface-400 dark:text-surface-500">
-                        Artwork will be generated automatically when you analyze this entry.
+                        {{ t('ui.entry.artwork_empty') }}
                     </div>
                     {% endif %}
                 </div>
                 <p id="artwork-status" class="text-xs text-surface-400 dark:text-surface-500 mt-2"></p>
             </div>
             <div class="w-full md:w-64">
-                <div class="text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">Upload your own</div>
+                <div class="text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">{{ t('ui.entry.upload_your_own') }}</div>
                 <input type="file" id="artwork-upload" accept="image/*" class="w-full text-sm border border-surface-200 dark:border-surface-700 dark:bg-surface-700 dark:text-surface-100 rounded-lg px-3 py-2">
-                <button onclick="uploadArtwork()" id="upload-btn" class="mt-2 w-full bg-surface-100 dark:bg-surface-600 hover:bg-surface-200 dark:hover:bg-surface-500 text-surface-700 dark:text-surface-50 text-sm font-medium px-4 py-2 rounded-lg transition">Upload Image</button>
+                <button onclick="uploadArtwork()" id="upload-btn" class="mt-2 w-full bg-surface-100 dark:bg-surface-600 hover:bg-surface-200 dark:hover:bg-surface-500 text-surface-700 dark:text-surface-50 text-sm font-medium px-4 py-2 rounded-lg transition">{{ t('ui.entry.upload_image') }}</button>
                 <p class="text-xs text-surface-400 dark:text-surface-500 mt-2">PNG, JPG, WEBP, GIF</p>
             </div>
         </div>
@@ -106,7 +106,7 @@
     <!-- Similar Entries -->
     {% if similar %}
     <div class="mb-8">
-        <h2 class="text-lg font-semibold text-surface-900 dark:text-surface-50 mb-4">Related Entries</h2>
+        <h2 class="text-lg font-semibold text-surface-900 dark:text-surface-50 mb-4">{{ t('ui.entry.related_entries') }}</h2>
         <div class="space-y-3">
             {% for s in similar %}
             <a href="/entry/{{ s.id }}" class="block bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 p-4 hover:border-primary-300 dark:hover:border-primary-600 transition">
@@ -124,13 +124,34 @@
 <script>
     const entryId = {{ entry.id | tojson }};
     const entryContent = {{ entry.content | tojson }};
+    const i18nEntryView = {
+        analyzing: {{ t('ui.entry.analyzing') | tojson }},
+        analyzingLoader: {{ t('ui.entry.analyzing_loader') | tojson }},
+        noAnalysis: {{ t('ui.entry.no_analysis_returned') | tojson }},
+        analysisFailed: {{ t('ui.entry.analysis_failed') | tojson }},
+        reanalyze: {{ t('ui.entry.reanalyze') | tojson }},
+        showAdvanced: {{ t('ui.entry.show_advanced') | tojson }},
+        hideAdvanced: {{ t('ui.entry.hide_advanced') | tojson }},
+        regenerating: {{ t('ui.entry.regenerating') | tojson }},
+        regenerateSeed: {{ t('ui.entry.regenerate_seed') | tojson }},
+        generating: {{ t('ui.entry.generating') | tojson }},
+        generatingArtwork: {{ t('ui.entry.generating_artwork') | tojson }},
+        generatedIn: {{ t('ui.entry.generated_in', seconds='__SECONDS__') | tojson }},
+        generationFailed: {{ t('ui.entry.generation_failed') | tojson }},
+        imageGenerationFailed: {{ t('ui.entry.image_generation_failed') | tojson }},
+        chooseUploadFile: {{ t('ui.entry.choose_upload_file') | tojson }},
+        uploading: {{ t('ui.entry.uploading') | tojson }},
+        uploadingImage: {{ t('ui.entry.uploading_image') | tojson }},
+        uploadComplete: {{ t('ui.entry.upload_complete') | tojson }},
+        uploadFailed: {{ t('ui.entry.upload_failed') | tojson }}
+    };
 
     async function analyzeEntry() {
         const btn = document.getElementById('analyze-btn');
         const content = document.getElementById('analysis-content');
-        btn.textContent = 'Analyzing...';
+        btn.textContent = i18nEntryView.analyzing;
         btn.disabled = true;
-        if (window.AILoader) AILoader.show('Analyzing entry...');
+        if (window.AILoader) AILoader.show(i18nEntryView.analyzingLoader);
         try {
             const resp = await fetch('/api/analyze', {
                 method: 'POST',
@@ -138,12 +159,12 @@
                 body: JSON.stringify({ content: entryContent, entry_id: entryId })
             });
             const data = await resp.json();
-            content.textContent = data.analysis || 'No analysis returned.';
+            content.textContent = data.analysis || i18nEntryView.noAnalysis;
         } catch (e) {
-            content.textContent = 'Analysis failed. Is Ollama running?';
+            content.textContent = i18nEntryView.analysisFailed;
         }
         if (window.AILoader) AILoader.hide();
-        btn.textContent = 'Re-analyze';
+        btn.textContent = i18nEntryView.reanalyze;
         btn.disabled = false;
     }
 
@@ -152,10 +173,10 @@
         const toggle = document.getElementById('advanced-toggle');
         if (controls.classList.contains('hidden')) {
             controls.classList.remove('hidden');
-            toggle.textContent = 'Hide Advanced';
+            toggle.textContent = i18nEntryView.hideAdvanced;
         } else {
             controls.classList.add('hidden');
-            toggle.textContent = 'Show Advanced';
+            toggle.textContent = i18nEntryView.showAdvanced;
         }
     }
 
@@ -165,18 +186,18 @@
         regenBtn.disabled = isLoading;
         uploadBtn.disabled = isLoading;
         if (isLoading) {
-            regenBtn.textContent = label || 'Regenerating...';
+            regenBtn.textContent = label || i18nEntryView.regenerating;
         } else {
-            regenBtn.textContent = 'Regenerate with New Seed';
+            regenBtn.textContent = i18nEntryView.regenerateSeed;
         }
     }
 
     async function generateArtwork(regenerate) {
         const container = document.getElementById('image-content');
         const status = document.getElementById('artwork-status');
-        setArtworkLoading(true, 'Generating...');
-        status.textContent = 'Generating artwork...';
-        if (window.AILoader) AILoader.show('Generating artwork...');
+        setArtworkLoading(true, i18nEntryView.generating);
+        status.textContent = i18nEntryView.generatingArtwork;
+        if (window.AILoader) AILoader.show(i18nEntryView.generatingArtwork);
         try {
             const resp = await fetch('/api/generate/artwork', {
                 method: 'POST',
@@ -186,12 +207,12 @@
             const data = await resp.json();
             if (data.image_url) {
                 container.innerHTML = '<img src="' + data.image_url + '" alt="Generated artwork" class="rounded-xl max-w-md" loading="lazy">';
-                status.textContent = 'Generated in ' + (data.generation_time || 0) + 's.';
+                status.textContent = i18nEntryView.generatedIn.replace('__SECONDS__', data.generation_time || 0);
             } else {
-                status.textContent = data.error || 'Generation failed.';
+                status.textContent = data.error || i18nEntryView.generationFailed;
             }
         } catch (e) {
-            status.textContent = 'Image generation failed.';
+            status.textContent = i18nEntryView.imageGenerationFailed;
         }
         if (window.AILoader) AILoader.hide();
         setArtworkLoading(false);
@@ -202,14 +223,14 @@
         const status = document.getElementById('artwork-status');
         const container = document.getElementById('image-content');
         if (!input.files.length) {
-            status.textContent = 'Choose a file to upload.';
+            status.textContent = i18nEntryView.chooseUploadFile;
             return;
         }
         const formData = new FormData();
         formData.append('entry_id', entryId);
         formData.append('image', input.files[0]);
-        setArtworkLoading(true, 'Uploading...');
-        status.textContent = 'Uploading image...';
+        setArtworkLoading(true, i18nEntryView.uploading);
+        status.textContent = i18nEntryView.uploadingImage;
         try {
             const resp = await fetch('/api/upload/artwork', {
                 method: 'POST',
@@ -218,12 +239,12 @@
             const data = await resp.json();
             if (data.image_url) {
                 container.innerHTML = '<img src="' + data.image_url + '" alt="Uploaded artwork" class="rounded-xl max-w-md" loading="lazy">';
-                status.textContent = 'Upload complete.';
+                status.textContent = i18nEntryView.uploadComplete;
             } else {
-                status.textContent = data.error || 'Upload failed.';
+                status.textContent = data.error || i18nEntryView.uploadFailed;
             }
         } catch (e) {
-            status.textContent = 'Upload failed.';
+            status.textContent = i18nEntryView.uploadFailed;
         }
         setArtworkLoading(false);
     }

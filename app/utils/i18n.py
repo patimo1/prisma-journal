@@ -1,0 +1,1022 @@
+"""Minimal i18n helpers with English default and extensible language catalogs."""
+
+TRANSLATIONS = {
+    "en": {
+        # Insights
+        "insights.big_five.min_entries": "At least 3 entries are required for Big Five analysis.",
+        "insights.issues.min_entries": "At least 5 entries are required for active issue analysis.",
+        "insights.issues.cached": "No new entries since the last analysis.",
+        "ai.unavailable": "AI is not available.",
+        
+        # Daily Questions
+        "daily_question.default": "What is on your mind today?",
+        "daily_question.start_journaling": "Start journaling to receive personalized questions.",
+        "daily_question.ai_offline": "AI is offline. Using the default question.",
+        "daily_question.load_failed": "Question could not be loaded.",
+        "daily_question.refresh_failed": "A new question could not be loaded.",
+        
+        # AI Prompts
+        "prompt.analyze_entry": (
+            "You are an empathetic journaling coach. Analyze the journal entry and provide:\n"
+            "1. **Emotional Tone** - The primary emotions expressed\n"
+            "2. **Key Themes** - Main topics or concerns\n"
+            "3. **Cognitive Patterns** - Any thinking patterns (positive or limiting)\n"
+            "4. **Reframe** - A constructive reframe of any negative thoughts\n"
+            "5. **Follow-up Prompt** - One thought-provoking question to go deeper\n\n"
+            "Keep your response concise and supportive."
+        ),
+        "prompt.suggest_title": "Generate a short, evocative title (max 8 words) for this journal entry. Return only the title, no quotes or extra text.",
+        "prompt.generate_image_prompt": "Based on this journal entry, create a short Stable Diffusion image prompt (max 50 words) that captures the mood and theme as {style} art. Return only the prompt.",
+        "prompt.generate_deeper_questions": (
+            "You are a thoughtful journaling coach. Generate an insightful follow-up question that:\n"
+            "1. Helps explore emotions more deeply\n"
+            "2. Identifies underlying motivations or patterns\n"
+            "3. Considers different perspectives\n"
+            "4. Is open-ended, not yes/no\n"
+            "5. Feels supportive, not interrogative\n\n"
+            "Return ONE question only. No preface, no list."
+        ),
+        "prompt.entry_metadata": (
+            "You are an experienced analyst skilled in text analysis and summarization. "
+            "Your goal is to analyze the following journal entry and create a structured overview.\n\n"
+            "Instructions:\n"
+            "1. Analyze the journal entry thoroughly.\n"
+            "2. Return a valid JSON object with these exact keys:\n"
+            "    - \"title\": A descriptive title (8-12 words) summarizing the core content.\n"
+            "    - \"summary\": A brief summary in 2-3 sentences covering the key points.\n"
+            "    - \"themes\": An array of 2-5 central themes or keywords from the entry.\n\n"
+            "# Important\nAll text (title, summary, themes) must be in {response_language}."
+        ),
+        "prompt.suggest_tags": (
+            "You are a tagging system for journal entries. Extract EXACTLY 5 relevant tags.\n\n"
+            "Rules:\n"
+            "1. Exactly 5 tags in the JSON array\n"
+            "2. Each tag: lowercase, 2-20 characters\n"
+            "3. Use hyphens for compound concepts: \"work-stress\", \"family-dinner\"\n"
+            "4. Avoid generic tags like \"entry\", \"journal\", \"thoughts\"\n"
+            "5. Focus on concrete topics, emotions, activities, people\n\n"
+            "Return valid JSON: {{\"tags\": [\"tag1\", \"tag2\", \"tag3\", \"tag4\", \"tag5\"]}}"
+        ),
+        "prompt.active_issues": (
+            "Analyze the user's journal entries and identify 3-5 active 'issues' "
+            "(unresolved problems, ongoing concerns, topics currently on the user's mind).\n\n"
+            "CRITICAL: Reply EXCLUSIVELY in {response_language}. "
+            "Do not use other languages like English or Chinese. "
+            "All generated text must be in {response_language}."
+        ),
+        "prompt.extract_tags": (
+            "Analyze this journal entry and extract 3-7 relevant tags in {response_language}.\n\n"
+            "Guidelines:\n"
+            "- Use hyphens for compound terms: \"work-stress\", \"family-dinner\"\n"
+            "- Return valid JSON: {{\"tags\": [\"tag1\", \"tag2\", ...]}}"
+        ),
+        "prompt.detect_emotions": (
+            "You are an emotion analyst using Plutchik's wheel. Analyze this journal entry for emotions.\n"
+            "Valid emotions: {emotions_list}\n\n"
+            "Return a JSON object with:\n"
+            '- "emotions": Array of detected emotions, each with:\n'
+            '  - "emotion": one of the valid emotions\n'
+            '  - "intensity": "low", "medium", or "high"\n'
+            '  - "frequency": 0.0-1.0 (how prominent in the text)\n'
+            '  - "passage": a short quote from the text showing this emotion\n\n'
+            "Only include emotions actually present. Return ONLY valid JSON."
+        ),
+        "prompt.identify_patterns": (
+            "You are a CBT-trained cognitive analyst. Analyze this journal entry for thinking patterns.\n"
+            "{themes_hint}"
+            "Return a JSON object with:\n"
+            '- "cognitive_distortions": Array of any cognitive distortions found, each with:\n'
+            '  - "type": name of distortion (e.g., "all-or-nothing thinking", "catastrophizing", "mind reading")\n'
+            '  - "example": quote from text showing this pattern\n'
+            '  - "reframe": a healthier alternative perspective\n'
+            '- "recurring_themes": Array of themes that might recur in their journaling\n'
+            '- "sentiment_trend": "positive", "negative", "mixed", or "neutral"\n'
+            '- "growth_areas": Array of 1-3 areas for personal growth or reflection\n\n'
+            "Be supportive, not critical. Return ONLY valid JSON. Use {response_language} for all user-facing text."
+        ),
+        "prompt.generate_artwork_prompt": (
+            "Create a Stable Diffusion prompt (max 50 words) for abstract {style} art.\n"
+            "The artwork should capture the mood and themes below WITHOUT including any specific personal details.\n"
+            "Focus on colors, shapes, textures, and abstract representations.\n"
+            "Return ONLY the prompt text, nothing else."
+        ),
+        "prompt.generate_personalized_prompts": (
+            "You are a thoughtful journaling coach. Based on this user's journal history, "
+            "generate 3 personalized writing prompts that:\n"
+            "1. One prompt to explore an UNDER-EXPLORED topic they haven't written much about\n"
+            "2. One prompt to REVISIT a theme from their past with fresh perspective\n"
+            "3. One prompt for GROWTH based on patterns you notice\n\n"
+            "Return ONLY a JSON array of 3 objects, each with:\n"
+            '- "category": "explore", "revisit", or "growth"\n'
+            '- "text": the prompt text (open-ended question)\n'
+            '- "reason": brief explanation why this prompt is suggested (1 sentence)\n\n'
+            "Return ONLY valid JSON, no other text. Use {response_language} for all text."
+        ),
+        "prompt.generate_big_five_analysis": (
+            "You are a personality analyst. Based on the journal excerpts, provide Big Five insights.\n"
+            "Return ONLY a JSON object with keys: openness, conscientiousness, extraversion, agreeableness, neuroticism.\n"
+            "Each key should map to an object with:\n"
+            '- "summary": 2-3 sentences of insight\n'
+            '- "evidence": array of 2-3 short evidence phrases from the excerpts\n\n'
+            "Timeframe: {timeframe_label}. Avoid clinical language. Use {response_language} for all text."
+        ),
+        "prompt.generate_recurring_topics": (
+            "You are a journaling insights assistant. Summarize each topic into a short insight.\n"
+            "Return ONLY a JSON array of objects with keys:\n"
+            '- "title": short topic title\n'
+            '- "insight": 2-3 sentence insight\n\n'
+            "Keep the tone supportive and concise. Use {response_language} for all text."
+        ),
+        "prompt.daily_reflection_question": (
+            "You are a thoughtful journaling coach. Based on the user's recent journal entries, "
+            "generate ONE personalized daily reflection question.\n\n"
+            "The question should:\n"
+            "1. Connect to themes or emotions from their recent writing\n"
+            "2. Be open-ended and thought-provoking\n"
+            "3. Encourage deeper self-reflection\n"
+            "4. Feel fresh and not repetitive\n\n"
+            "Return ONLY the question text, nothing else. Use {response_language}."
+        ),
+        "prompt.chat_persona_entry": (
+            "You are a compassionate therapist helping the user reflect on a single journal entry. "
+            "Use {response_language} for all responses."
+        ),
+        "prompt.chat_persona_global": (
+            "You are a data analyst summarizing patterns across multiple journal entries. "
+            "Use {response_language} for all responses."
+        ),
+        
+        # UI Translations
+        "ui.dashboard.hero": "What's on your mind today?",
+        "ui.dashboard.new_entry": "New Entry",
+        "ui.dashboard.daily_reflection": "Daily Reflection",
+        "ui.dashboard.daily_reflection_subtitle": "A personalized question for today",
+        "ui.dashboard.loading": "Loading question...",
+        "ui.dashboard.write_about": "Write about this",
+        "ui.dashboard.new_question": "New Question",
+        "ui.dashboard.dive_deeper": "or dive deeper",
+        "ui.dashboard.explore.loading_topics": "Loading personalized topics...",
+        "ui.dashboard.explore.min_entries": "Write at least 3 entries to receive personalized suggestions. You currently have {count} entries.",
+        "ui.dashboard.explore.load_new_topics": "Load new topics",
+        "ui.dashboard.suggestions": "Suggestions",
+        "ui.dashboard.last_week": "Last week",
+        "ui.dashboard.calendar": "Calendar",
+        "ui.dashboard.emotional_state": "Emotional State",
+        "ui.dashboard.emotional_state_subtitle": "Packed bubbles by intensity",
+        "ui.dashboard.concerns.title": "Your Ongoing Concerns",
+        "ui.dashboard.concerns.subtitle": "Active topics and unresolved concerns",
+        "ui.dashboard.concerns.new": "+ New Concern",
+        "ui.dashboard.concerns.analyze": "Analyze",
+        "ui.dashboard.concerns.tab.active": "Active",
+        "ui.dashboard.concerns.tab.pinned": "Pinned",
+        "ui.dashboard.concerns.tab.archived": "Archived",
+        "ui.dashboard.concerns.tab.all": "All",
+        "ui.dashboard.concerns.loading": "Loading concerns...",
+        "ui.dashboard.personality.title": "Your Personality",
+        "ui.dashboard.personality.subtitle": "Based on your journal entries",
+        "ui.dashboard.range.last_week": "Last week",
+        "ui.dashboard.range.last_month": "Last month",
+        "ui.dashboard.range.last_quarter": "Last quarter",
+        "ui.dashboard.range.all_time": "All time",
+        "ui.dashboard.big5.openness": "Openness",
+        "ui.dashboard.big5.conscientiousness": "Conscientiousness",
+        "ui.dashboard.big5.extraversion": "Extraversion",
+        "ui.dashboard.big5.agreeableness": "Agreeableness",
+        "ui.dashboard.big5.neuroticism": "Neuroticism",
+        "ui.dashboard.big5.no_insights": "No insights yet.",
+        "ui.dashboard.big5.analyzing_patterns": "Analyzing personality patterns...",
+        "ui.dashboard.big5.analyzing": "Analyzing personality...",
+        "ui.dashboard.big5.unavailable": "Personality insights unavailable.",
+        "ui.dashboard.concerns.load_failed": "Failed to load.",
+        "ui.dashboard.concerns.empty": "No concerns in this category.",
+        "ui.dashboard.concerns.empty_active": "No active concerns. Click \"Analyze\" to find new ones.",
+        "ui.dashboard.concerns.empty_archived": "No archived concerns.",
+        "ui.dashboard.concerns.status.escalating": "↗ Escalating",
+        "ui.dashboard.concerns.status.stable": "→ Stable",
+        "ui.dashboard.concerns.status.improving": "↘ Improving",
+        "ui.dashboard.concerns.status.dormant": "○ Dormant",
+        "ui.dashboard.concerns.status.closed": "✓ Closed",
+        "ui.dashboard.concerns.tooltip.unpin": "Unpin",
+        "ui.dashboard.concerns.tooltip.pin": "Pin",
+        "ui.dashboard.concerns.tooltip.edit": "Edit",
+        "ui.dashboard.concerns.tooltip.reopen": "Reopen",
+        "ui.dashboard.concerns.tooltip.close_archive": "Close (Archive)",
+        "ui.dashboard.concerns.tooltip.delete": "Delete",
+        "ui.dashboard.concerns.confirm_delete": "Permanently delete this concern?",
+        "ui.dashboard.concerns.no_description": "No description",
+        "ui.dashboard.concerns.entries_suffix": "entries",
+        "ui.dashboard.concerns.auto": "Auto",
+        "ui.dashboard.concerns.manual": "Manual",
+        "ui.dashboard.concerns.analyzing_entries": "Analyzing entries...",
+        "ui.dashboard.concerns.analysis_failed": "Analysis failed.",
+        "ui.dashboard.concerns.cached_no_new": "No new entries since the last analysis.",
+        "ui.dashboard.concerns.prompt_new_name": "Name of the new concern:",
+        "ui.dashboard.concerns.prompt_status": "Status for \"{headline}\":\n\nOptions: escalating, stable, improving, dormant, closed\n\nCurrent: {status}",
+        "ui.dashboard.recurring.none": "No suggestions available yet. Continue journaling to unlock insights.",
+        "ui.dashboard.recurring.gathering": "Gathering suggestions...",
+        "ui.dashboard.recurring.gathering_loader": "Gathering themes...",
+        "ui.dashboard.recurring.unavailable": "Topics unavailable.",
+        "ui.entry.tags.analyzing": "Analyzing...",
+        "ui.entry.tags.suggest": "Suggest tags",
+        "ui.entry.tags.connected_concerns": "Connected to your concerns:",
+        "ui.entry.tags.input_placeholder": "Add tag (press Enter)",
+        "ui.entry.tags.from_existing": "From your existing tags",
+        "ui.entry.tags.known_categories": "(Known categories)",
+        "ui.entry.tags.new_ideas": "New ideas",
+        "ui.entry.tags.expand_system": "(Expands your system)",
+        "ui.entry.tags.none_available": "No tag suggestions available. Check whether Ollama is running.",
+        "ui.entry.tags.load_failed": "Tag suggestions could not be loaded",
+        "ui.entry.tags.min_chars": "Write at least 50 characters for tag suggestions",
+        "ui.entry.tags.no_known_matches": "No matching known tags found",
+        "ui.entry.tags.new_badge": "New",
+        "ui.entry.tags.no_new_ideas": "No new tag ideas",
+        "ui.entry.tags.empty_hint": "No tags yet. Add tags to link entries and identify ongoing concerns.",
+        "ui.nav.dashboard": "Dashboard",
+        "ui.nav.journal": "Journal",
+        "ui.nav.ask": "Ask",
+        "ui.nav.search": "Search",
+        "ui.nav.insights": "Insights",
+        "ui.nav.settings": "Settings",
+        "ui.nav.status": "Status",
+        "ui.entry.mood": "Mood",
+        "ui.entry.tags": "Tags",
+        "ui.entry.save": "Save",
+        "ui.entry.cancel": "Cancel",
+        "ui.entry.delete": "Delete",
+        "ui.entry.edit": "Edit",
+        "ui.entry.content": "Content",
+        "ui.entry.framework_label": "Framework",
+        "ui.entry.framework_none": "None",
+        "ui.entry.framework_questions": "Framework Questions",
+        "ui.entry.framework_answered": "{current} of {total} answered",
+        "ui.entry.framework_step_by_step": "Step-by-step",
+        "ui.entry.framework_tip": "Tip:",
+        "ui.entry.framework_previous": "← Previous",
+        "ui.entry.framework_next": "Next →",
+        "ui.entry.framework_question_count": "Question {current} of {total}",
+        "ui.entry.framework_build_content": "Build entry from answers",
+        "ui.entry.framework_skip_hint": "Skip any question you want.",
+        "ui.entry.framework_done": "Done ✓",
+        "ui.entry.voice_input": "Voice Input",
+        "ui.entry.voice_record": "Record",
+        "ui.search.placeholder": "Search entries...",
+        "ui.search.no_results": "No entries found",
+        "ui.base.title_default": "Journal",
+        "ui.base.close_sidebar": "Close sidebar",
+        "ui.base.open_sidebar": "Open sidebar",
+        "ui.base.secure_journal": "Secure Journal",
+        "ui.base.llm_offline": "LLM offline",
+        "ui.base.toggle_dark_mode": "Toggle dark mode",
+        "ui.base.theme_mode_label": "{theme} mode",
+        "ui.base.thinking": "Thinking...",
+        "ui.journal.feed_title": "Journal Feed",
+        "ui.journal.count_one": "{count} entry",
+        "ui.journal.count_other": "{count} entries",
+        "ui.journal.list_view": "List view",
+        "ui.journal.grid_view": "Grid view",
+        "ui.journal.sort.newest": "Newest first",
+        "ui.journal.sort.oldest": "Oldest first",
+        "ui.journal.sort.longest": "Longest",
+        "ui.journal.sort.shortest": "Shortest",
+        "ui.journal.sort.emotion_asc": "Emotion A-Z",
+        "ui.journal.sort.emotion_desc": "Emotion Z-A",
+        "ui.journal.select": "Select",
+        "ui.journal.all": "All",
+        "ui.journal.selected_count": "{count} selected",
+        "ui.journal.export": "Export",
+        "ui.journal.words": "{count} words",
+        "ui.journal.previous": "Previous",
+        "ui.journal.next": "Next",
+        "ui.journal.page_of": "Page {page} of {total}",
+        "ui.journal.empty": "Your journal is empty.",
+        "ui.journal.first_entry": "Write Your First Entry",
+        "ui.journal.delete_confirm_one": "Delete 1 entry? This cannot be undone.",
+        "ui.journal.delete_confirm_other": "Delete {count} entries? This cannot be undone.",
+        "ui.journal.delete_failed": "Failed to delete entries. Please try again.",
+        "ui.journal.export_failed": "Failed to export entries. Please try again.",
+        "ui.entry.entry_fallback": "Entry",
+        "ui.entry.journal_entry": "Journal Entry",
+        "ui.entry.discuss": "Discuss",
+        "ui.entry.delete_confirm": "Delete this entry?",
+        "ui.entry.ai_insights": "AI Insights",
+        "ui.entry.reanalyze": "Re-analyze",
+        "ui.entry.analyze": "Analyze",
+        "ui.entry.analysis_hint": "Click \"Analyze\" to get AI-powered insights about this entry.",
+        "ui.entry.artwork": "Entry Artwork",
+        "ui.entry.artwork_hint": "AI-generated artwork based on your entry's mood and themes. Created locally.",
+        "ui.entry.artwork_disabled": "Artwork generation is disabled in settings.",
+        "ui.entry.show_advanced": "Show Advanced",
+        "ui.entry.hide_advanced": "Hide Advanced",
+        "ui.entry.regenerate_seed": "Regenerate with New Seed",
+        "ui.entry.regenerate_hint": "Creates a completely new variation",
+        "ui.entry.artwork_empty": "Artwork will be generated automatically when you analyze this entry.",
+        "ui.entry.upload_your_own": "Upload your own",
+        "ui.entry.upload_image": "Upload Image",
+        "ui.entry.related_entries": "Related Entries",
+        "ui.entry.analyzing": "Analyzing...",
+        "ui.entry.analyzing_loader": "Analyzing entry...",
+        "ui.entry.no_analysis_returned": "No analysis returned.",
+        "ui.entry.analysis_failed": "Analysis failed. Is Ollama running?",
+        "ui.entry.regenerating": "Regenerating...",
+        "ui.entry.generating": "Generating...",
+        "ui.entry.generating_artwork": "Generating artwork...",
+        "ui.entry.generated_in": "Generated in {seconds}s.",
+        "ui.entry.generation_failed": "Generation failed.",
+        "ui.entry.image_generation_failed": "Image generation failed.",
+        "ui.entry.choose_upload_file": "Choose a file to upload.",
+        "ui.entry.uploading": "Uploading...",
+        "ui.entry.uploading_image": "Uploading image...",
+        "ui.entry.upload_complete": "Upload complete.",
+        "ui.entry.upload_failed": "Upload failed.",
+        "ui.search.title": "Search Entries",
+        "ui.search.placeholder_nl": "Search your journal with natural language...",
+        "ui.search.mode.keyword": "Keyword",
+        "ui.search.mode.semantic": "Semantic",
+        "ui.search.try_example": "Try: \"When was I last stressed about work?\" or \"Times I felt proud\".",
+        "ui.search.results_for_one": "{count} result for \"<strong>{query}</strong>\" ({mode} search)",
+        "ui.search.results_for_other": "{count} results for \"<strong>{query}</strong>\" ({mode} search)",
+        "ui.search.no_results_switch": "No entries found. Try a different search term or switch to semantic search.",
+        "ui.search.no_results_plain": "No entries found. Try a different search term.",
+        "ui.search.no_entries_for_query": "No entries found for \"{query}\".",
+        "ui.search.untitled": "Untitled",
+        "ui.search.match_percent": "{score}% match",
+        "ui.settings.subtitle": "Personalize your journaling experience.",
+        "ui.settings.export_settings": "Export Settings",
+        "ui.settings.import_settings": "Import Settings",
+        "ui.settings.fix_following": "Please fix the following:",
+        "ui.settings.restart_required": "Restart required",
+        "ui.settings.service_status": "Service Status",
+        "ui.settings.refresh": "Refresh",
+        "ui.settings.account_profile": "Account & Profile",
+        "ui.settings.local_single_user": "Local-only, single-user mode",
+        "ui.settings.username": "Username",
+        "ui.settings.username_hint": "Stored for upcoming multi-user support.",
+        "ui.settings.data_export": "Data export",
+        "ui.settings.data_export_hint": "Exports all entries with tags and emotions.",
+        "ui.settings.delete_all_data": "Delete all data",
+        "ui.settings.delete_everything": "Delete Everything",
+        "ui.settings.delete_all_hint": "Deletes entries, tags, emotions, and embeddings.",
+        "ui.settings.data_retention_period": "Data retention period",
+        "ui.settings.retention.keep_forever": "Keep all entries forever",
+        "ui.settings.retention.keep_2y": "Keep entries for 2 years",
+        "ui.settings.retention.keep_1y": "Keep entries for 1 year",
+        "ui.settings.retention_hint": "Entries older than this will be automatically deleted. Cleanup runs on app startup.",
+        "ui.settings.writing_preferences": "Writing Preferences",
+        "ui.settings.default_entry_type": "Default entry type",
+        "ui.settings.entry_type.blank": "Blank entry",
+        "ui.settings.entry_type.framework": "Framework",
+        "ui.settings.entry_type.prompt": "Prompt",
+        "ui.settings.auto_save_interval": "Auto-save interval",
+        "ui.settings.auto_save.15": "Every 15 seconds",
+        "ui.settings.auto_save.30": "Every 30 seconds",
+        "ui.settings.auto_save.60": "Every 60 seconds",
+        "ui.settings.auto_save.disabled": "Disabled",
+        "ui.settings.ai_analysis": "AI & Analysis",
+        "ui.settings.voice_transcription": "Voice & Transcription",
+        "ui.settings.appearance": "Appearance",
+        "ui.settings.live_preview_hint": "Live preview updates instantly",
+        "ui.settings.preview": "Preview",
+        "ui.settings.preview_title": "Evening Reflection",
+        "ui.settings.preview_text": "A quick preview of spacing, font size, and theme.",
+        "ui.settings.primary_action": "Primary Action",
+        "ui.settings.privacy_data": "Privacy & Data",
+        "ui.settings.advanced": "Advanced",
+        "ui.settings.advanced_restart_hint": "Advanced changes require an app restart.",
+        "ui.settings.save_settings": "Save Settings",
+        "ui.settings.custom_frameworks": "Custom Frameworks",
+        "ui.settings.framework_total": "{count} total",
+        "ui.settings.save_framework": "Save Framework",
+        "ui.settings.ai_system_prompts": "AI System Prompts",
+        "ui.settings.checking": "Checking...",
+        "ui.settings.refresh_failed": "Failed to refresh service status.",
+        "ui.settings.generating": "Generating...",
+        "ui.settings.journal_export_title": "Journal Export",
+        "ui.settings.entries_label": "{count} entries",
+        "ui.settings.generated_date": "Generated: {date}",
+        "ui.settings.untitled_entry": "Untitled Entry",
+        "ui.settings.emotions_prefix": "Emotions: ",
+        "ui.settings.tags_prefix": "Tags: ",
+        "ui.settings.entry_of_total": "Entry {index} of {total}",
+        "ui.settings.pdf_generation_failed": "PDF generation failed: ",
+        "ui.settings.type_delete_confirm": "Type DELETE to remove all journal data.",
+        "ui.settings.delete_failed": "Delete failed.",
+        "ui.settings.import_failed": "Import failed.",
+        "ui.settings.prompt_empty": "Prompt text cannot be empty.",
+        "ui.settings.saving": "Saving...",
+        "ui.settings.save_short": "Save",
+        "ui.settings.save_failed": "Save failed.",
+        "ui.settings.prompt_saved": "Prompt saved.",
+        "ui.settings.network_save_error": "Network error saving prompt.",
+        "ui.settings.reset_prompt_confirm": "Reset this prompt to its default? Your customizations will be lost.",
+        "ui.settings.reset_failed": "Reset failed.",
+        "ui.settings.prompt_reset": "Prompt reset to default.",
+        "ui.settings.network_reset_error": "Network error resetting prompt.",
+        "ui.settings.ollama_model": "Ollama model",
+        "ui.settings.ollama_pull_hint": "Pull models with",
+        "ui.settings.emotion_analysis": "Emotion analysis",
+        "ui.settings.go_deeper_suggestions": "Go Deeper suggestions",
+        "ui.settings.past_memories_sidebar": "Past Memories sidebar",
+        "ui.settings.artwork_generation": "Artwork generation",
+        "ui.settings.whisper_model_size": "Whisper model size",
+        "ui.settings.voice_language_preference": "Voice language preference",
+        "ui.settings.voice_lang.auto": "Auto-detect",
+        "ui.settings.voice_lang.en": "English",
+        "ui.settings.voice_lang.es": "Spanish",
+        "ui.settings.voice_lang.fr": "French",
+        "ui.settings.voice_lang.de": "German",
+        "ui.settings.voice_lang.ja": "Japanese",
+        "ui.settings.auto_start_transcription_editing": "Auto-start transcription editing",
+        "ui.settings.theme": "Theme",
+        "ui.settings.theme.light": "Light",
+        "ui.settings.theme.dark": "Dark",
+        "ui.settings.theme.auto": "Auto",
+        "ui.settings.font_size": "Font size",
+        "ui.settings.size.small": "Small",
+        "ui.settings.size.medium": "Medium",
+        "ui.settings.size.large": "Large",
+        "ui.settings.spacing": "Spacing",
+        "ui.settings.spacing.compact": "Compact",
+        "ui.settings.spacing.comfortable": "Comfortable",
+        "ui.settings.journal_feed_view": "Journal feed view",
+        "ui.settings.view.grid": "Grid",
+        "ui.settings.view.list": "List",
+        "ui.settings.ui_language": "Interface language",
+        "ui.settings.lang.de": "German",
+        "ui.settings.lang.en": "English",
+        "ui.settings.color_scheme": "Color scheme",
+        "ui.settings.local_only_mode": "Local-only mode (disable external APIs)",
+        "ui.settings.automatic_backups_location": "Automatic backups location",
+        "ui.settings.retention.keep_all": "Keep all",
+        "ui.settings.database_path": "Database path",
+        "ui.settings.chromadb_path": "ChromaDB path",
+        "ui.settings.model_cache_location": "Model cache location",
+        "ui.settings.llm_provider": "LLM Provider",
+        "ui.settings.llm_provider_hint": "Choose which LLM backend to use for AI features",
+        "ui.settings.ollama_endpoint": "Ollama endpoint",
+        "ui.settings.lmstudio_endpoint": "LM Studio endpoint",
+        "ui.settings.lmstudio_model_name": "LM Studio model name",
+        "ui.settings.lmstudio_model_hint": "Model ID as shown in LM Studio (e.g., 'llama-3.2-3b-instruct')",
+        "ui.settings.sd_endpoint": "Stable Diffusion endpoint",
+        "ui.settings.debug_mode": "Debug mode",
+        "ui.settings.framework_name": "Framework Name",
+        "ui.settings.category": "Category",
+        "ui.settings.description": "Description",
+        "ui.settings.questions_one_per_line": "Questions (one per line)",
+        "ui.settings.questions_hint": "We will convert each line into a framework question with placeholders.",
+        "ui.settings.available_frameworks": "Available Frameworks",
+        "ui.settings.prompts_expand_hint": "Click a category to expand and edit prompts. Changes are saved individually.",
+        "ui.settings.quick_reference": "Quick Reference:",
+        "ui.settings.unsaved": "Unsaved",
+        "ui.filter.date_from": "From",
+        "ui.filter.date_to": "To",
+        "ui.filter.emotions": "Emotions",
+        "ui.filter.tags": "Tags",
+        "ui.filter.apply": "Apply Filters",
+        "ui.filter.clear": "Clear",
+        "ui.ask.title": "Ask",
+        "ui.ask.chats": "Chats",
+        "ui.ask.new_chat": "New",
+        "ui.ask.hero": "Ask anything from your journal",
+        "ui.ask.context_global": "Global context: all entries",
+        "ui.ask.context_entry": "Entry context: {summary}",
+        "ui.ask.persona_label": "Data Analyst",
+        "ui.ask.empty_message": "Start a new conversation.",
+        "ui.ask.input_placeholder": "Type a question...",
+        "ui.ask.input_hint": "Shift+Enter for new line",
+        "ui.ask.send": "Send",
+        "error.load_failed": "Question could not be loaded",
+        "error.new_question_failed": "New question could not be loaded",
+    },
+    
+    # German translations
+    "de": {
+        # Insights
+        "insights.big_five.min_entries": "Mindestens 3 Einträge sind für die Big Five Analyse erforderlich.",
+        "insights.issues.min_entries": "Mindestens 5 Einträge sind für die Analyse aktiver Themen erforderlich.",
+        "insights.issues.cached": "Keine neuen Einträge seit der letzten Analyse.",
+        "ai.unavailable": "KI ist nicht verfügbar.",
+        
+        # Daily Questions
+        "daily_question.default": "Was bewegt dich heute?",
+        "daily_question.start_journaling": "Beginne mit dem Schreiben, um personalisierte Fragen zu erhalten.",
+        "daily_question.ai_offline": "KI ist offline. Verwende die Standardfrage.",
+        "daily_question.load_failed": "Frage konnte nicht geladen werden.",
+        "daily_question.refresh_failed": "Eine neue Frage konnte nicht geladen werden.",
+        
+        # AI Prompts
+        "prompt.analyze_entry": (
+            "Du bist ein einfühlsamer Journaling-Coach. Analysiere den Tagebucheintrag und liefere:\n"
+            "1. **Emotionaler Ton** - Die primären ausgedrückten Emotionen\n"
+            "2. **Kernthemen** - Hauptthemen oder Anliegen\n"
+            "3. **Kognitive Muster** - Alle Denkmuster (positiv oder limitierend)\n"
+            "4. **Reframing** - Ein konstruktives Reframing negativer Gedanken\n"
+            "5. **Folgefrage** - Eine zum Nachdenken anregende Frage, um tiefer zu gehen\n\n"
+            "Halte deine Antwort prägnant und unterstützend."
+        ),
+        "prompt.suggest_title": "Generiere einen kurzen, aussagekräftigen Titel (max. 8 Wörter) für diesen Tagebucheintrag. Gib nur den Titel zurück, keine Anführungszeichen oder zusätzlichen Text.",
+        "prompt.generate_image_prompt": "Basierend auf diesem Tagebucheintrag, erstelle einen kurzen Stable Diffusion Bild-Prompt (max. 50 Wörter), der die Stimmung und das Thema als {style} Kunst einfängt. Gib nur den Prompt zurück.",
+        "prompt.generate_deeper_questions": (
+            "Du bist ein nachdenklicher Journaling-Coach. Generiere eine einsichtsvolle Folgefrage, die:\n"
+            "1. Hilft, Emotionen tiefer zu erforschen\n"
+            "2. Zugrunde liegende Motivationen oder Muster identifiziert\n"
+            "3. Verschiedene Perspektiven berücksichtigt\n"
+            "4. Offen ist, nicht Ja/Nein\n"
+            "5. Sich unterstützend anfühlt, nicht verhörend\n\n"
+            "Gib NUR eine Frage zurück. Keine Einleitung, keine Liste."
+        ),
+        "prompt.entry_metadata": (
+            "Du bist ein erfahrener Analytiker mit einem besonderen Talent für Textanalyse und Zusammenfassung. "
+            "Dein Ziel ist es, den folgenden Tagebucheintrag zu analysieren und eine strukturierte Übersicht zu erstellen.\n\n"
+            "Anweisungen:\n"
+            "1. Analysiere den Tagebucheintrag gründlich.\n"
+            "2. Gib ein valides JSON-Objekt mit diesen exakten Schlüsseln zurück:\n"
+            "    - \"title\": Ein beschreibender Titel (8-12 Wörter), der den Kerninhalt zusammenfasst.\n"
+            "    - \"summary\": Eine kurze Zusammenfassung in 2-3 Sätzen, die die wichtigsten Punkte wiedergibt.\n"
+            "    - \"themes\": Ein Array mit 2-5 zentralen Themen oder Stichwörtern, die im Eintrag behandelt werden.\n\n"
+            "# Wichtig\nAlle Texte (Titel, Zusammenfassung, Themen) müssen auf Deutsch verfasst sein."
+        ),
+        "prompt.suggest_tags": (
+            "Du bist ein Tagging-System für deutsche Tagebucheinträge. Extrahiere EXAKT 5 relevante Tags.\n\n"
+            "Regeln:\n"
+            "1. Genau 5 Tags im JSON-Array\n"
+            "2. Jeder Tag: Kleinschreibung, 2-20 Zeichen\n"
+            "3. Bindestriche für zusammengesetzte Begriffe: \"arbeit-stress\", \"familienessen\"\n"
+            "4. Vermeide generische Tags wie \"eintrag\", \"tagebuch\", \"gedanken\"\n"
+            "5. Fokus auf konkrete Themen, Emotionen, Aktivitäten, Personen\n\n"
+            "Gib valides JSON zurück: {{\"tags\": [\"tag1\", \"tag2\", \"tag3\", \"tag4\", \"tag5\"]}}"
+        ),
+        "prompt.active_issues": (
+            "Analysiere die Tagebucheinträge des Nutzers und identifiziere 3-5 aktive 'Baustellen' "
+            "(ungelöste Probleme, laufende Anliegen, Themen, die den Nutzer aktuell beschäftigen).\n\n"
+            "WICHTIG: Antworte AUSSCHLIEßLICH auf Deutsch. "
+            "Verwende KEINE anderen Sprachen wie Englisch oder Chinesisch. "
+            "Alle Texte müssen auf Deutsch verfasst sein."
+        ),
+        "prompt.extract_tags": (
+            "Analysiere diesen Tagebucheintrag und extrahiere 3-7 relevante Tags auf Deutsch.\n\n"
+            "Richtlinien:\n"
+            "- Verwende Bindestriche für zusammengesetzte Begriffe: \"arbeit-stress\", \"familienessen\"\n"
+            "- Gib valides JSON zurück: {{\"tags\": [\"tag1\", \"tag2\", ...]}}"
+        ),
+        "prompt.detect_emotions": (
+            "Du bist ein Emotions-Analytiker, der Plutchiks Rad der Emotionen verwendet. Analysiere diesen Tagebucheintrag nach Emotionen.\n"
+            "Gültige Emotionen: {emotions_list}\n\n"
+            "Gib ein JSON-Objekt zurück mit:\n"
+            '- "emotions": Array der erkannten Emotionen, jeweils mit:\n'
+            '  - "emotion": eine der gültigen Emotionen\n'
+            '  - "intensity": "low", "medium" oder "high"\n'
+            '  - "frequency": 0.0-1.0 (wie prominent im Text)\n'
+            '  - "passage": ein kurzes Zitat aus dem Text, das diese Emotion zeigt\n\n'
+            "Nur tatsächlich vorhandene Emotionen einbeziehen. Gib NUR valides JSON zurück."
+        ),
+        "prompt.identify_patterns": (
+            "Du bist ein CBT-geschulter kognitiver Analytiker. Analysiere diesen Tagebucheintrag nach Denkmustern.\n"
+            "{themes_hint}"
+            "Gib ein JSON-Objekt zurück mit:\n"
+            '- "cognitive_distortions": Array aller gefundenen kognitiven Verzerrungen, jeweils mit:\n'
+            '  - "type": Name der Verzerrung (z.B. "Schwarz-Weiß-Denken", "Katastrophisieren", "Gedankenlesen")\n'
+            '  - "example": Zitat aus dem Text, das dieses Muster zeigt\n'
+            '  - "reframe": eine gesündere alternative Perspektive\n'
+            '- "recurring_themes": Array von Themen, die in ihrem Journaling wiederkehren könnten\n'
+            '- "sentiment_trend": "positive", "negative", "mixed" oder "neutral"\n'
+            '- "growth_areas": Array von 1-3 Bereichen für persönliches Wachstum oder Reflexion\n\n'
+            "Sei unterstützend, nicht kritisch. Gib NUR valides JSON zurück."
+        ),
+        "prompt.generate_artwork_prompt": (
+            "Erstelle einen Stable Diffusion Prompt (max. 50 Wörter) für abstrakte {style} Kunst.\n"
+            "Das Kunstwerk sollte die Stimmung und Themen einfangen, OHNE spezifische persönliche Details zu enthalten.\n"
+            "Fokussiere dich auf Farben, Formen, Texturen und abstrakte Darstellungen.\n"
+            "Gib NUR den Prompt-Text zurück, nichts anderes."
+        ),
+        "prompt.generate_personalized_prompts": (
+            "Du bist ein nachdenklicher Journaling-Coach. Basierend auf der Journal-Historie dieses Nutzers, "
+            "generiere 3 personalisierte Schreib-Prompts:\n"
+            "1. Ein Prompt, um ein UNTERFORSCHTES Thema zu erkunden, über das sie noch nicht viel geschrieben haben\n"
+            "2. Ein Prompt, um ein Thema aus ihrer Vergangenheit mit frischer Perspektive zu ÜBERDENKEN\n"
+            "3. Ein Prompt für WACHSTUM basierend auf Mustern, die du bemerkst\n\n"
+            "Gib NUR ein JSON-Array mit 3 Objekten zurück, jeweils mit:\n"
+            '- "category": "explore", "revisit" oder "growth"\n'
+            '- "text": der Prompt-Text (offene Frage)\n'
+            '- "reason": kurze Erklärung, warum dieser Prompt vorgeschlagen wird (1 Satz)\n\n'
+            "Gib NUR valides JSON zurück, keinen anderen Text."
+        ),
+        "prompt.generate_big_five_analysis": (
+            "Du bist ein Persönlichkeitsanalytiker. Basierend auf den Journal-Auszügen, liefere Big Five Einblicke.\n"
+            "Gib NUR ein JSON-Objekt mit den Schlüsseln zurück: openness, conscientiousness, extraversion, agreeableness, neuroticism.\n"
+            "Jeder Schlüssel sollte auf ein Objekt abgebildet werden mit:\n"
+            '- "summary": 2-3 Sätze Einblick\n'
+            '- "evidence": Array von 2-3 kurzen Beweis-Phrasen aus den Auszügen\n\n'
+            "Zeitrahmen: {timeframe_label}. Vermeide klinische Sprache."
+        ),
+        "prompt.generate_recurring_topics": (
+            "Du bist ein Journaling-Einblicke-Assistent. Fasse jedes Thema in einen kurzen Einblick zusammen.\n"
+            "Gib NUR ein JSON-Array von Objekten mit den Schlüsseln zurück:\n"
+            '- "title": kurzer Themen-Titel\n'
+            '- "insight": 2-3 Sätze Einblick\n\n'
+            "Halte den Ton unterstützend und prägnant."
+        ),
+        "prompt.daily_reflection_question": (
+            "Du bist ein nachdenklicher Journaling-Coach. Basierend auf den neuesten Tagebucheinträgen des Nutzers, "
+            "generiere EINE personalisierte tägliche Reflexionsfrage.\n\n"
+            "Die Frage sollte:\n"
+            "1. Mit Themen oder Emotionen aus ihrem neuesten Schreiben verbunden sein\n"
+            "2. Offen und zum Nachdenken anregend sein\n"
+            "3. Tiefere Selbstreflexion fördern\n"
+            "4. Frisch und nicht repetitiv wirken\n\n"
+            "Gib NUR den Fragetext zurück, nichts anderes."
+        ),
+        "prompt.chat_persona_entry": (
+            "Du bist ein mitfühlender Therapeut, der dem Nutzer hilft, über einen einzelnen Tagebucheintrag nachzudenken."
+        ),
+        "prompt.chat_persona_global": (
+            "Du bist ein Datenanalytiker, der Muster über mehrere Tagebucheinträge hinweg zusammenfasst."
+        ),
+        
+        # UI Translations
+        "ui.dashboard.hero": "Was bewegt dich heute?",
+        "ui.dashboard.new_entry": "Neuer Eintrag",
+        "ui.dashboard.daily_reflection": "Tägliche Reflexion",
+        "ui.dashboard.daily_reflection_subtitle": "Eine personalisierte Frage für heute",
+        "ui.dashboard.loading": "Frage wird geladen...",
+        "ui.dashboard.write_about": "Darüber schreiben",
+        "ui.dashboard.new_question": "Neue Frage",
+        "ui.dashboard.dive_deeper": "oder tiefer eintauchen",
+        "ui.dashboard.explore.loading_topics": "Personalisierte Themen werden geladen...",
+        "ui.dashboard.explore.min_entries": "Schreibe mindestens 3 Einträge, um personalisierte Vorschläge zu erhalten. Du hast momentan {count} Einträge.",
+        "ui.dashboard.explore.load_new_topics": "Neue Themen laden",
+        "ui.dashboard.suggestions": "Vorschläge",
+        "ui.dashboard.last_week": "Letzte Woche",
+        "ui.dashboard.calendar": "Kalender",
+        "ui.dashboard.emotional_state": "Emotionaler Zustand",
+        "ui.dashboard.emotional_state_subtitle": "Blasen nach Intensität",
+        "ui.dashboard.concerns.title": "Deine Baustellen",
+        "ui.dashboard.concerns.subtitle": "Aktive Themen & ungelöste Anliegen",
+        "ui.dashboard.concerns.new": "+ Neue Baustelle",
+        "ui.dashboard.concerns.analyze": "Analysieren",
+        "ui.dashboard.concerns.tab.active": "Aktiv",
+        "ui.dashboard.concerns.tab.pinned": "Gepinnt",
+        "ui.dashboard.concerns.tab.archived": "Archiv",
+        "ui.dashboard.concerns.tab.all": "Alle",
+        "ui.dashboard.concerns.loading": "Baustellen werden geladen...",
+        "ui.dashboard.personality.title": "Deine Persönlichkeit",
+        "ui.dashboard.personality.subtitle": "Basierend auf deinen Tagebucheinträgen",
+        "ui.dashboard.range.last_week": "Letzte Woche",
+        "ui.dashboard.range.last_month": "Letzter Monat",
+        "ui.dashboard.range.last_quarter": "Letztes Quartal",
+        "ui.dashboard.range.all_time": "Gesamt",
+        "ui.dashboard.big5.openness": "Offenheit",
+        "ui.dashboard.big5.conscientiousness": "Gewissenhaftigkeit",
+        "ui.dashboard.big5.extraversion": "Extraversion",
+        "ui.dashboard.big5.agreeableness": "Verträglichkeit",
+        "ui.dashboard.big5.neuroticism": "Neurotizismus",
+        "ui.dashboard.big5.no_insights": "Noch keine Einsichten.",
+        "ui.dashboard.big5.analyzing_patterns": "Persönlichkeitsmuster werden analysiert...",
+        "ui.dashboard.big5.analyzing": "Analysiere Persönlichkeit...",
+        "ui.dashboard.big5.unavailable": "Persönlichkeits-Insights nicht verfügbar.",
+        "ui.dashboard.concerns.load_failed": "Fehler beim Laden.",
+        "ui.dashboard.concerns.empty": "Keine Baustellen in dieser Kategorie.",
+        "ui.dashboard.concerns.empty_active": "Keine aktiven Baustellen. Klicke \"Analysieren\" um neue zu finden.",
+        "ui.dashboard.concerns.empty_archived": "Keine archivierten Baustellen.",
+        "ui.dashboard.concerns.status.escalating": "↗ Eskalierend",
+        "ui.dashboard.concerns.status.stable": "→ Stabil",
+        "ui.dashboard.concerns.status.improving": "↘ Bessernd",
+        "ui.dashboard.concerns.status.dormant": "○ Schlafend",
+        "ui.dashboard.concerns.status.closed": "✓ Abgeschlossen",
+        "ui.dashboard.concerns.tooltip.unpin": "Lösen",
+        "ui.dashboard.concerns.tooltip.pin": "Anpinnen",
+        "ui.dashboard.concerns.tooltip.edit": "Bearbeiten",
+        "ui.dashboard.concerns.tooltip.reopen": "Wiedereröffnen",
+        "ui.dashboard.concerns.tooltip.close_archive": "Abschließen (Archivieren)",
+        "ui.dashboard.concerns.tooltip.delete": "Löschen",
+        "ui.dashboard.concerns.confirm_delete": "Baustelle wirklich unwiderruflich löschen?",
+        "ui.dashboard.concerns.no_description": "Keine Beschreibung",
+        "ui.dashboard.concerns.entries_suffix": "Einträge",
+        "ui.dashboard.concerns.auto": "Auto",
+        "ui.dashboard.concerns.manual": "Manuell",
+        "ui.dashboard.concerns.analyzing_entries": "Analysiere Einträge...",
+        "ui.dashboard.concerns.analysis_failed": "Analyse fehlgeschlagen.",
+        "ui.dashboard.concerns.cached_no_new": "Keine neuen Einträge seit der letzten Analyse.",
+        "ui.dashboard.concerns.prompt_new_name": "Name der neuen Baustelle:",
+        "ui.dashboard.concerns.prompt_status": "Status für \"{headline}\":\n\nOptionen: escalating, stable, improving, dormant, closed\n\nAktuell: {status}",
+        "ui.dashboard.recurring.none": "Noch keine Vorschläge verfügbar. Schreibe weiter, um Einblicke freizuschalten.",
+        "ui.dashboard.recurring.gathering": "Vorschläge werden gesammelt...",
+        "ui.dashboard.recurring.gathering_loader": "Themen werden gesammelt...",
+        "ui.dashboard.recurring.unavailable": "Themen nicht verfügbar.",
+        "ui.entry.tags.analyzing": "Analysiere...",
+        "ui.entry.tags.suggest": "Tags vorschlagen",
+        "ui.entry.tags.connected_concerns": "Verbindet zu deinen Baustellen:",
+        "ui.entry.tags.input_placeholder": "Tag hinzufügen (Enter drücken)",
+        "ui.entry.tags.from_existing": "Aus deinen bestehenden Tags",
+        "ui.entry.tags.known_categories": "(Bekannte Kategorien)",
+        "ui.entry.tags.new_ideas": "Neue Ideen",
+        "ui.entry.tags.expand_system": "(Erweitert dein System)",
+        "ui.entry.tags.none_available": "Keine Tag-Vorschläge verfügbar. Überprüfe, ob Ollama läuft.",
+        "ui.entry.tags.load_failed": "Tag-Vorschläge konnten nicht geladen werden",
+        "ui.entry.tags.min_chars": "Schreibe mindestens 50 Zeichen für Tag-Vorschläge",
+        "ui.entry.tags.no_known_matches": "Keine passenden bekannten Tags gefunden",
+        "ui.entry.tags.new_badge": "Neu",
+        "ui.entry.tags.no_new_ideas": "Keine neuen Tag-Ideen",
+        "ui.entry.tags.empty_hint": "Noch keine Tags. Füge Tags hinzu, um Einträge zu verknüpfen und Baustellen zu identifizieren.",
+        "ui.nav.dashboard": "Dashboard",
+        "ui.nav.journal": "Tagebuch",
+        "ui.nav.ask": "Fragen",
+        "ui.nav.search": "Suche",
+        "ui.nav.insights": "Einblicke",
+        "ui.nav.settings": "Einstellungen",
+        "ui.nav.status": "Status",
+        "ui.entry.mood": "Stimmung",
+        "ui.entry.tags": "Tags",
+        "ui.entry.save": "Speichern",
+        "ui.entry.cancel": "Abbrechen",
+        "ui.entry.delete": "Löschen",
+        "ui.entry.edit": "Bearbeiten",
+        "ui.entry.content": "Inhalt",
+        "ui.entry.framework_label": "Framework",
+        "ui.entry.framework_none": "Keine",
+        "ui.entry.framework_questions": "Framework-Fragen",
+        "ui.entry.framework_answered": "{current} von {total} beantwortet",
+        "ui.entry.framework_step_by_step": "Schritt für Schritt",
+        "ui.entry.framework_tip": "Tipp:",
+        "ui.entry.framework_previous": "← Zurück",
+        "ui.entry.framework_next": "Weiter →",
+        "ui.entry.framework_question_count": "Frage {current} von {total}",
+        "ui.entry.framework_build_content": "Eintrag aus Antworten erstellen",
+        "ui.entry.framework_skip_hint": "Überspringe Fragen nach Bedarf.",
+        "ui.entry.framework_done": "Fertig ✓",
+        "ui.entry.voice_input": "Spracheingabe",
+        "ui.entry.voice_record": "Aufnahme",
+        "ui.search.placeholder": "Einträge durchsuchen...",
+        "ui.search.no_results": "Keine Einträge gefunden",
+        "ui.base.title_default": "Tagebuch",
+        "ui.base.close_sidebar": "Seitenleiste schließen",
+        "ui.base.open_sidebar": "Seitenleiste öffnen",
+        "ui.base.secure_journal": "Sicheres Tagebuch",
+        "ui.base.llm_offline": "LLM offline",
+        "ui.base.toggle_dark_mode": "Dunkelmodus umschalten",
+        "ui.base.theme_mode_label": "{theme}-Modus",
+        "ui.base.thinking": "Denke nach...",
+        "ui.journal.feed_title": "Tagebuch-Feed",
+        "ui.journal.count_one": "{count} Eintrag",
+        "ui.journal.count_other": "{count} Einträge",
+        "ui.journal.list_view": "Listenansicht",
+        "ui.journal.grid_view": "Rasteransicht",
+        "ui.journal.sort.newest": "Neueste zuerst",
+        "ui.journal.sort.oldest": "Älteste zuerst",
+        "ui.journal.sort.longest": "Längste",
+        "ui.journal.sort.shortest": "Kürzeste",
+        "ui.journal.sort.emotion_asc": "Emotion A-Z",
+        "ui.journal.sort.emotion_desc": "Emotion Z-A",
+        "ui.journal.select": "Auswählen",
+        "ui.journal.all": "Alle",
+        "ui.journal.selected_count": "{count} ausgewählt",
+        "ui.journal.export": "Exportieren",
+        "ui.journal.words": "{count} Wörter",
+        "ui.journal.previous": "Zurück",
+        "ui.journal.next": "Weiter",
+        "ui.journal.page_of": "Seite {page} von {total}",
+        "ui.journal.empty": "Dein Tagebuch ist leer.",
+        "ui.journal.first_entry": "Schreibe deinen ersten Eintrag",
+        "ui.journal.delete_confirm_one": "1 Eintrag löschen? Das kann nicht rückgängig gemacht werden.",
+        "ui.journal.delete_confirm_other": "{count} Einträge löschen? Das kann nicht rückgängig gemacht werden.",
+        "ui.journal.delete_failed": "Einträge konnten nicht gelöscht werden. Bitte erneut versuchen.",
+        "ui.journal.export_failed": "Einträge konnten nicht exportiert werden. Bitte erneut versuchen.",
+        "ui.entry.entry_fallback": "Eintrag",
+        "ui.entry.journal_entry": "Tagebucheintrag",
+        "ui.entry.discuss": "Besprechen",
+        "ui.entry.delete_confirm": "Diesen Eintrag löschen?",
+        "ui.entry.ai_insights": "KI-Einblicke",
+        "ui.entry.reanalyze": "Neu analysieren",
+        "ui.entry.analyze": "Analysieren",
+        "ui.entry.analysis_hint": "Klicke auf \"Analysieren\", um KI-Einblicke zu diesem Eintrag zu erhalten.",
+        "ui.entry.artwork": "Eintragskunstwerk",
+        "ui.entry.artwork_hint": "KI-generiertes Artwork basierend auf Stimmung und Themen deines Eintrags. Lokal erstellt.",
+        "ui.entry.artwork_disabled": "Die Artwork-Generierung ist in den Einstellungen deaktiviert.",
+        "ui.entry.show_advanced": "Erweitert anzeigen",
+        "ui.entry.hide_advanced": "Erweitert ausblenden",
+        "ui.entry.regenerate_seed": "Mit neuem Seed regenerieren",
+        "ui.entry.regenerate_hint": "Erstellt eine komplett neue Variation",
+        "ui.entry.artwork_empty": "Artwork wird automatisch generiert, wenn du diesen Eintrag analysierst.",
+        "ui.entry.upload_your_own": "Eigenes hochladen",
+        "ui.entry.upload_image": "Bild hochladen",
+        "ui.entry.related_entries": "Verwandte Einträge",
+        "ui.entry.analyzing": "Analysiere...",
+        "ui.entry.analyzing_loader": "Eintrag wird analysiert...",
+        "ui.entry.no_analysis_returned": "Keine Analyse zurückgegeben.",
+        "ui.entry.analysis_failed": "Analyse fehlgeschlagen. Läuft Ollama?",
+        "ui.entry.regenerating": "Regeneriere...",
+        "ui.entry.generating": "Generiere...",
+        "ui.entry.generating_artwork": "Artwork wird generiert...",
+        "ui.entry.generated_in": "In {seconds}s generiert.",
+        "ui.entry.generation_failed": "Generierung fehlgeschlagen.",
+        "ui.entry.image_generation_failed": "Bildgenerierung fehlgeschlagen.",
+        "ui.entry.choose_upload_file": "Wähle eine Datei zum Hochladen.",
+        "ui.entry.uploading": "Lade hoch...",
+        "ui.entry.uploading_image": "Bild wird hochgeladen...",
+        "ui.entry.upload_complete": "Upload abgeschlossen.",
+        "ui.entry.upload_failed": "Upload fehlgeschlagen.",
+        "ui.search.title": "Einträge durchsuchen",
+        "ui.search.placeholder_nl": "Durchsuche dein Tagebuch mit natürlicher Sprache...",
+        "ui.search.mode.keyword": "Stichwort",
+        "ui.search.mode.semantic": "Semantisch",
+        "ui.search.try_example": "Versuche: \"Wann war ich zuletzt wegen der Arbeit gestresst?\" oder \"Momente, in denen ich stolz war\".",
+        "ui.search.results_for_one": "{count} Ergebnis für \"<strong>{query}</strong>\" ({mode}-Suche)",
+        "ui.search.results_for_other": "{count} Ergebnisse für \"<strong>{query}</strong>\" ({mode}-Suche)",
+        "ui.search.no_results_switch": "Keine Einträge gefunden. Versuche einen anderen Suchbegriff oder wechsle zur semantischen Suche.",
+        "ui.search.no_results_plain": "Keine Einträge gefunden. Versuche einen anderen Suchbegriff.",
+        "ui.search.no_entries_for_query": "Keine Einträge für \"{query}\" gefunden.",
+        "ui.search.untitled": "Ohne Titel",
+        "ui.search.match_percent": "{score}% Treffer",
+        "ui.settings.subtitle": "Personalisiere dein Journaling-Erlebnis.",
+        "ui.settings.export_settings": "Einstellungen exportieren",
+        "ui.settings.import_settings": "Einstellungen importieren",
+        "ui.settings.fix_following": "Bitte folgende Punkte beheben:",
+        "ui.settings.restart_required": "Neustart erforderlich",
+        "ui.settings.service_status": "Dienststatus",
+        "ui.settings.refresh": "Aktualisieren",
+        "ui.settings.account_profile": "Konto & Profil",
+        "ui.settings.local_single_user": "Lokaler Einzelbenutzer-Modus",
+        "ui.settings.username": "Benutzername",
+        "ui.settings.username_hint": "Gespeichert für kommende Mehrbenutzer-Unterstützung.",
+        "ui.settings.data_export": "Datenexport",
+        "ui.settings.data_export_hint": "Exportiert alle Einträge mit Tags und Emotionen.",
+        "ui.settings.delete_all_data": "Alle Daten löschen",
+        "ui.settings.delete_everything": "Alles löschen",
+        "ui.settings.delete_all_hint": "Löscht Einträge, Tags, Emotionen und Embeddings.",
+        "ui.settings.data_retention_period": "Datenaufbewahrungszeitraum",
+        "ui.settings.retention.keep_forever": "Alle Einträge dauerhaft behalten",
+        "ui.settings.retention.keep_2y": "Einträge 2 Jahre behalten",
+        "ui.settings.retention.keep_1y": "Einträge 1 Jahr behalten",
+        "ui.settings.retention_hint": "Ältere Einträge werden automatisch gelöscht. Bereinigung läuft beim App-Start.",
+        "ui.settings.writing_preferences": "Schreibpräferenzen",
+        "ui.settings.default_entry_type": "Standard-Eintragstyp",
+        "ui.settings.entry_type.blank": "Leerer Eintrag",
+        "ui.settings.entry_type.framework": "Framework",
+        "ui.settings.entry_type.prompt": "Prompt",
+        "ui.settings.auto_save_interval": "Auto-Speicherintervall",
+        "ui.settings.auto_save.15": "Alle 15 Sekunden",
+        "ui.settings.auto_save.30": "Alle 30 Sekunden",
+        "ui.settings.auto_save.60": "Alle 60 Sekunden",
+        "ui.settings.auto_save.disabled": "Deaktiviert",
+        "ui.settings.ai_analysis": "KI & Analyse",
+        "ui.settings.voice_transcription": "Sprache & Transkription",
+        "ui.settings.appearance": "Darstellung",
+        "ui.settings.live_preview_hint": "Live-Vorschau aktualisiert sofort",
+        "ui.settings.preview": "Vorschau",
+        "ui.settings.preview_title": "Abendliche Reflexion",
+        "ui.settings.preview_text": "Eine kurze Vorschau auf Abstand, Schriftgröße und Theme.",
+        "ui.settings.primary_action": "Primäre Aktion",
+        "ui.settings.privacy_data": "Privatsphäre & Daten",
+        "ui.settings.advanced": "Erweitert",
+        "ui.settings.advanced_restart_hint": "Erweiterte Änderungen erfordern einen App-Neustart.",
+        "ui.settings.save_settings": "Einstellungen speichern",
+        "ui.settings.custom_frameworks": "Benutzerdefinierte Frameworks",
+        "ui.settings.framework_total": "{count} gesamt",
+        "ui.settings.save_framework": "Framework speichern",
+        "ui.settings.ai_system_prompts": "KI-Systemprompts",
+        "ui.settings.checking": "Prüfe...",
+        "ui.settings.refresh_failed": "Dienststatus konnte nicht aktualisiert werden.",
+        "ui.settings.generating": "Generiere...",
+        "ui.settings.journal_export_title": "Tagebuch-Export",
+        "ui.settings.entries_label": "{count} Einträge",
+        "ui.settings.generated_date": "Erstellt: {date}",
+        "ui.settings.untitled_entry": "Unbenannter Eintrag",
+        "ui.settings.emotions_prefix": "Emotionen: ",
+        "ui.settings.tags_prefix": "Tags: ",
+        "ui.settings.entry_of_total": "Eintrag {index} von {total}",
+        "ui.settings.pdf_generation_failed": "PDF-Erstellung fehlgeschlagen: ",
+        "ui.settings.type_delete_confirm": "Gib DELETE ein, um alle Journaldaten zu löschen.",
+        "ui.settings.delete_failed": "Löschen fehlgeschlagen.",
+        "ui.settings.import_failed": "Import fehlgeschlagen.",
+        "ui.settings.prompt_empty": "Prompt-Text darf nicht leer sein.",
+        "ui.settings.saving": "Speichere...",
+        "ui.settings.save_short": "Speichern",
+        "ui.settings.save_failed": "Speichern fehlgeschlagen.",
+        "ui.settings.prompt_saved": "Prompt gespeichert.",
+        "ui.settings.network_save_error": "Netzwerkfehler beim Speichern des Prompts.",
+        "ui.settings.reset_prompt_confirm": "Diesen Prompt auf Standard zurücksetzen? Deine Anpassungen gehen verloren.",
+        "ui.settings.reset_failed": "Zurücksetzen fehlgeschlagen.",
+        "ui.settings.prompt_reset": "Prompt auf Standard zurückgesetzt.",
+        "ui.settings.network_reset_error": "Netzwerkfehler beim Zurücksetzen des Prompts.",
+        "ui.settings.ollama_model": "Ollama-Modell",
+        "ui.settings.ollama_pull_hint": "Modelle laden mit",
+        "ui.settings.emotion_analysis": "Emotionsanalyse",
+        "ui.settings.go_deeper_suggestions": "Go-Deeper-Vorschläge",
+        "ui.settings.past_memories_sidebar": "Past-Memories-Seitenleiste",
+        "ui.settings.artwork_generation": "Artwork-Generierung",
+        "ui.settings.whisper_model_size": "Whisper-Modellgröße",
+        "ui.settings.voice_language_preference": "Bevorzugte Sprache für Stimme",
+        "ui.settings.voice_lang.auto": "Automatisch erkennen",
+        "ui.settings.voice_lang.en": "Englisch",
+        "ui.settings.voice_lang.es": "Spanisch",
+        "ui.settings.voice_lang.fr": "Französisch",
+        "ui.settings.voice_lang.de": "Deutsch",
+        "ui.settings.voice_lang.ja": "Japanisch",
+        "ui.settings.auto_start_transcription_editing": "Transkriptionsbearbeitung automatisch starten",
+        "ui.settings.theme": "Theme",
+        "ui.settings.theme.light": "Hell",
+        "ui.settings.theme.dark": "Dunkel",
+        "ui.settings.theme.auto": "Auto",
+        "ui.settings.font_size": "Schriftgröße",
+        "ui.settings.size.small": "Klein",
+        "ui.settings.size.medium": "Mittel",
+        "ui.settings.size.large": "Groß",
+        "ui.settings.spacing": "Abstand",
+        "ui.settings.spacing.compact": "Kompakt",
+        "ui.settings.spacing.comfortable": "Komfortabel",
+        "ui.settings.journal_feed_view": "Tagebuch-Feed-Ansicht",
+        "ui.settings.view.grid": "Raster",
+        "ui.settings.view.list": "Liste",
+        "ui.settings.ui_language": "Oberflaechensprache",
+        "ui.settings.lang.de": "Deutsch",
+        "ui.settings.lang.en": "Englisch",
+        "ui.settings.color_scheme": "Farbschema",
+        "ui.settings.local_only_mode": "Nur-lokal-Modus (externe APIs deaktivieren)",
+        "ui.settings.automatic_backups_location": "Speicherort für automatische Backups",
+        "ui.settings.retention.keep_all": "Alles behalten",
+        "ui.settings.database_path": "Datenbankpfad",
+        "ui.settings.chromadb_path": "ChromaDB-Pfad",
+        "ui.settings.model_cache_location": "Modell-Cache-Speicherort",
+        "ui.settings.llm_provider": "LLM-Anbieter",
+        "ui.settings.llm_provider_hint": "Wähle das LLM-Backend für KI-Funktionen",
+        "ui.settings.ollama_endpoint": "Ollama-Endpunkt",
+        "ui.settings.lmstudio_endpoint": "LM Studio-Endpunkt",
+        "ui.settings.lmstudio_model_name": "LM Studio Modellname",
+        "ui.settings.lmstudio_model_hint": "Modell-ID wie in LM Studio angezeigt (z.B. 'llama-3.2-3b-instruct')",
+        "ui.settings.sd_endpoint": "Stable-Diffusion-Endpunkt",
+        "ui.settings.debug_mode": "Debug-Modus",
+        "ui.settings.framework_name": "Framework-Name",
+        "ui.settings.category": "Kategorie",
+        "ui.settings.description": "Beschreibung",
+        "ui.settings.questions_one_per_line": "Fragen (eine pro Zeile)",
+        "ui.settings.questions_hint": "Jede Zeile wird in eine Framework-Frage mit Platzhaltern umgewandelt.",
+        "ui.settings.available_frameworks": "Verfügbare Frameworks",
+        "ui.settings.prompts_expand_hint": "Klicke eine Kategorie, um Prompts aufzuklappen und zu bearbeiten. Änderungen werden einzeln gespeichert.",
+        "ui.settings.quick_reference": "Schnellreferenz:",
+        "ui.settings.unsaved": "Ungespeichert",
+        "ui.filter.date_from": "Von",
+        "ui.filter.date_to": "Bis",
+        "ui.filter.emotions": "Emotionen",
+        "ui.filter.tags": "Tags",
+        "ui.filter.apply": "Filter anwenden",
+        "ui.filter.clear": "Zurücksetzen",
+        "ui.ask.title": "Fragen",
+        "ui.ask.chats": "Chats",
+        "ui.ask.new_chat": "Neu",
+        "ui.ask.hero": "Stelle Fragen zu deinem Tagebuch",
+        "ui.ask.context_global": "Globaler Kontext: alle Einträge",
+        "ui.ask.context_entry": "Eintrag-Kontext: {summary}",
+        "ui.ask.persona_label": "Datenanalyst",
+        "ui.ask.empty_message": "Starte ein neues Gespräch.",
+        "ui.ask.input_placeholder": "Stelle eine Frage...",
+        "ui.ask.input_hint": "Shift+Enter für neue Zeile",
+        "ui.ask.send": "Senden",
+        "error.load_failed": "Frage konnte nicht geladen werden",
+        "error.new_question_failed": "Neue Frage konnte nicht geladen werden",
+    },
+}
+
+
+def normalize_language(lang):
+    if not lang:
+        return "en"
+    code = str(lang).strip().lower().replace("_", "-")
+    short = code.split("-", 1)[0]
+    return short if short in TRANSLATIONS else "en"
+
+
+def translate(key, lang="en", **kwargs):
+    """Translate a key with fallback to English and optional format args."""
+    code = normalize_language(lang)
+    text = TRANSLATIONS.get(code, {}).get(key) or TRANSLATIONS["en"].get(key) or key
+    if kwargs:
+        try:
+            return text.format(**kwargs)
+        except Exception:
+            return text
+    return text
+
+
+def get_prompt(prompt_key, lang="en", **kwargs):
+    """Get an AI prompt with language parameter substitution.
+    
+    Args:
+        prompt_key: The translation key for the prompt (e.g., "prompt.analyze_entry")
+        lang: Language code (default: "en")
+        **kwargs: Additional format parameters (e.g., style="watercolor")
+    
+    Returns:
+        The formatted prompt with {response_language} substituted
+    """
+    code = normalize_language(lang)
+    
+    # Get language names for prompt injection
+    lang_names = {
+        "en": "English",
+        "de": "German",
+    }
+    response_language = lang_names.get(code, "English")
+    
+    # Merge response_language into kwargs
+    format_params = {"response_language": response_language, **kwargs}
+    
+    return translate(prompt_key, lang, **format_params)

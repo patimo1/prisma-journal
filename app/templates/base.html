@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Journal{% endblock %} | PrismA</title>
+    <title>{% block title %}{{ t('ui.base.title_default') }}{% endblock %} | PrismA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -112,34 +112,34 @@
                     <a href="/" class="flex items-center gap-2">
                         <img src="/static/images/Prisma_logo.png" alt="PrismA" class="h-8 w-auto">
                     </a>
-                    <button id="sidebar-close" class="lg:hidden p-1.5 rounded-lg text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700" aria-label="Close sidebar">
+                    <button id="sidebar-close" class="lg:hidden p-1.5 rounded-lg text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700" aria-label="{{ t('ui.base.close_sidebar') }}">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                     </button>
                 </div>
-                <p class="mt-1 text-xs text-surface-400 dark:text-surface-500">Secure Journal</p>
+                <p class="mt-1 text-xs text-surface-400 dark:text-surface-500">{{ t('ui.base.secure_journal') }}</p>
 
                 <nav class="mt-8 space-y-2">
                     <a href="/" class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-xl text-surface-700 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/></svg>
-                        Dashboard
+                        {{ t('ui.nav.dashboard') }}
                     </a>
                     <a href="/journal" class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-xl text-surface-700 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6"/></svg>
-                        Journal
+                        {{ t('ui.nav.journal') }}
                     </a>
                     <a href="/entry/new" class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-xl text-surface-700 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                        New Entry
+                        {{ t('ui.dashboard.new_entry') }}
                     </a>
                     <a href="/ask" class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-xl text-surface-700 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h6m-2 8a9 9 0 110-18 9 9 0 010 18z"/></svg>
-                        Ask
+                        {{ t('ui.nav.ask') }}
                     </a>
                     <a href="/search" class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-xl text-surface-700 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                        Search
+                        {{ t('ui.nav.search') }}
                     </a>
                 </nav>
 
@@ -148,10 +148,10 @@
                     {% set active_llm_online = service_status.lmstudio if active_llm_provider == 'lmstudio' else service_status.ollama %}
                     {% set active_llm_message = service_status.lmstudio_message if active_llm_provider == 'lmstudio' else service_status.ollama_message %}
                     {% if not active_llm_online %}
-                    <div class="text-xs text-red-500" title="{{ active_llm_message }}">LLM offline</div>
+                    <div class="text-xs text-red-500" title="{{ active_llm_message }}">{{ t('ui.base.llm_offline') }}</div>
                     {% endif %}
                     <div class="flex items-center gap-2">
-                        <button id="theme-toggle" type="button" class="p-2 rounded-lg text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors" title="Toggle dark mode">
+                        <button id="theme-toggle" type="button" class="p-2 rounded-lg text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors" title="{{ t('ui.base.toggle_dark_mode') }}">
                             <svg id="theme-light-icon" class="hidden w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
                             </svg>
@@ -159,8 +159,8 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646Z"/>
                             </svg>
                         </button>
-                        <a href="/settings" class="text-xs text-surface-500 dark:text-surface-400 hover:text-surface-900 dark:hover:text-surface-50 transition-colors">Settings</a>
-                        <a href="/status" class="text-xs text-surface-500 dark:text-surface-400 hover:text-surface-900 dark:hover:text-surface-50 transition-colors">Status</a>
+                        <a href="/settings" class="text-xs text-surface-500 dark:text-surface-400 hover:text-surface-900 dark:hover:text-surface-50 transition-colors">{{ t('ui.nav.settings') }}</a>
+                        <a href="/status" class="text-xs text-surface-500 dark:text-surface-400 hover:text-surface-900 dark:hover:text-surface-50 transition-colors">{{ t('ui.nav.status') }}</a>
                     </div>
                 </div>
             </div>
@@ -172,17 +172,17 @@
             <header class="sticky top-0 z-30 bg-[#f5f5f5]/80 dark:bg-surface-800/80 backdrop-blur border-b border-surface-200 dark:border-surface-700">
                 <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                        <button id="sidebar-open" class="lg:hidden p-2 rounded-lg text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700" aria-label="Open sidebar">
+                        <button id="sidebar-open" class="lg:hidden p-2 rounded-lg text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700" aria-label="{{ t('ui.base.open_sidebar') }}">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                             </svg>
                         </button>
-                        <span class="text-sm text-surface-500 dark:text-surface-400">{{ theme_name | title }} mode</span>
+                        <span class="text-sm text-surface-500 dark:text-surface-400">{{ t('ui.base.theme_mode_label', theme=theme_name | title) }}</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <a href="/entry/new" class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface-900 dark:bg-surface-700 text-white dark:text-surface-50 text-xs font-medium hover:bg-surface-800 dark:hover:bg-surface-600">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                            New Entry
+                            {{ t('ui.dashboard.new_entry') }}
                         </a>
                     </div>
                 </div>
@@ -204,7 +204,7 @@
                     <path d="M8.5 5.5a3 3 0 015.5-1.5 3 3 0 015.5 1.5 3 3 0 010 6 3 3 0 01-1.5 5.6 3 3 0 01-5.5 1.4 3 3 0 01-5.5-1.4A3 3 0 013 11.5a3 3 0 015.5-6z"/>
                 </svg>
             </div>
-            <p id="global-loader-text" class="text-sm text-surface-600 dark:text-surface-400">Thinking...</p>
+            <p id="global-loader-text" class="text-sm text-surface-600 dark:text-surface-400">{{ t('ui.base.thinking') }}</p>
         </div>
     </div>
 
