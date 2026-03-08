@@ -72,7 +72,7 @@
   - Provider selection in settings UI
 
 - **CLI Arguments** 
-  - Added `--ollama` and `--lmstudio` flags
+  - Added `--ollama`, `--lmstudio` and `--lang` flags
   - Custom `--port` and `--host` options
   - Command-line provider override
   - Multi-developer workflow support
@@ -85,8 +85,8 @@
 
 - **Localization/Internationalization**
   - Full English localization
-  - Multi-language UI support
   - Full German localization
+  - Multi-language UI support
 
 - **Bug fixes/other improvements**
   - Dashboard insights now skip expensive AI analysis when not enough entries exist
