@@ -39,6 +39,8 @@
 ## In Progress 
 
 
+---
+
 ## 🐛 Known Bugs
 
 ### Critical
@@ -52,6 +54,11 @@
   - Error during package installation
   - **Workaround documented:** `python -m pip install --no-build-isolation openai-whisper`
   - Consider: Adding to setup docs or fixing in requirements.txt
+
+### UI
+  - Dashboard: "Last Week" shown, without any data, should be hidden
+  - Colors should be more fitting to the background, it's hard to see text sometimes
+
 
 ---
 
@@ -79,6 +86,7 @@
 - **Localization/Internationalization**
   - Full English localization
   - Multi-language UI support
+  - Full German localization
 
 - **Bug fixes/other improvements**
   - Dashboard insights now skip expensive AI analysis when not enough entries exist

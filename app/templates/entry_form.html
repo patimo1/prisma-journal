@@ -139,7 +139,7 @@
                         </svg>
                     </span>
                     <span id="voice-recording-dot" class="hidden recording-dot"></span>
-                    <span id="voice-record-label">Record</span>
+                    <span id="voice-record-label">{{ t('ui.entry.voice.record') }}</span>
                     <span id="voice-record-timer" class="hidden font-mono text-xs"></span>
                 </button>
             </div>
@@ -149,7 +149,7 @@
                 <canvas id="voice-waveform" class="voice-waveform"></canvas>
                 <div class="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-400">
                     <span class="recording-dot"></span>
-                    <span>Recording: <span id="voice-timer">0:00</span></span>
+                    <span>{{ t('ui.entry.voice.recording') }} <span id="voice-timer">0:00</span></span>
                 </div>
             </div>
 
@@ -158,7 +158,7 @@
                 <div class="progress-bar-track bg-surface-200 dark:bg-surface-700">
                     <div class="progress-bar-fill bg-primary-500"></div>
                 </div>
-                <p class="text-sm text-surface-600 dark:text-surface-400">Transcribing...</p>
+                <p class="text-sm text-surface-600 dark:text-surface-400">{{ t('ui.entry.voice.transcribing') }}</p>
             </div>
 
             <!-- Preview state: editable text + actions -->
@@ -168,21 +168,21 @@
                               class="w-full rounded-md border border-surface-300 dark:border-surface-600 px-3 py-2 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none resize-y"></textarea>
                     <div class="flex items-center justify-between flex-wrap gap-2">
                         <div class="flex items-center gap-3 text-xs text-surface-500 dark:text-surface-400">
-                            <span>Detected: <strong id="voice-detected-lang">—</strong></span>
-                            <span>Confidence: <strong id="voice-confidence">—</strong></span>
+                            <span>{{ t('ui.entry.voice.detected') }} <strong id="voice-detected-lang">—</strong></span>
+                            <span>{{ t('ui.entry.voice.confidence') }} <strong id="voice-confidence">—</strong></span>
                         </div>
                         <div class="flex items-center gap-2">
                             <button type="button" onclick="voiceInsertAtCursor()"
                                     class="px-3 py-1 rounded text-xs font-medium bg-primary-600 text-white hover:bg-primary-700 transition">
-                                Insert at Cursor
+                                {{ t('ui.entry.voice.insert_at_cursor') }}
                             </button>
                             <button type="button" onclick="voiceReplaceAll()"
                                     class="px-3 py-1 rounded text-xs font-medium bg-surface-200 dark:bg-surface-600 text-surface-700 dark:text-surface-200 hover:bg-surface-300 dark:hover:bg-surface-500 transition">
-                                Replace All
+                                {{ t('ui.entry.voice.replace_all') }}
                             </button>
                             <button type="button" onclick="voiceDismissPreview()"
                                     class="p-1 rounded text-surface-400 hover:text-surface-600 dark:hover:text-surface-200 hover:bg-surface-100 dark:hover:bg-surface-700 transition"
-                                    title="Dismiss">
+                                    title="{{ t('ui.entry.voice.dismiss') }}">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                 </svg>
@@ -203,7 +203,7 @@
                         <p id="voice-error-message" class="text-sm text-red-700 dark:text-red-300"></p>
                         <button type="button" onclick="voiceRetry()"
                                 class="mt-2 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 underline">
-                            Try Again
+                            {{ t('ui.entry.voice.try_again') }}
                         </button>
                     </div>
                 </div>
@@ -215,7 +215,7 @@
             <!-- Panel header -->
             <div class="flex items-center justify-between px-4 py-3 border-b border-surface-100 dark:border-surface-700">
                 <div class="flex items-center gap-2">
-                    <span class="text-sm font-medium text-surface-700 dark:text-surface-300">Go Deeper</span>
+                    <span class="text-sm font-medium text-surface-700 dark:text-surface-300">{{ t('ui.entry.deeper.title') }}</span>
                 </div>
                 <button type="button" id="deeper-generate-btn"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 transition"
@@ -224,7 +224,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                    <span>Generate Question</span>
+                    <span>{{ t('ui.entry.deeper.generate_question') }}</span>
                 </button>
             </div>
 
@@ -233,7 +233,7 @@
                 <div class="progress-bar-track bg-surface-200 dark:bg-surface-700">
                     <div class="progress-bar-fill bg-primary-500"></div>
                 </div>
-                <p class="text-sm text-surface-600 dark:text-surface-400">Generating a reflective question...</p>
+                <p class="text-sm text-surface-600 dark:text-surface-400">{{ t('ui.entry.deeper.generating') }}</p>
             </div>
 
             <!-- Questions state -->
@@ -243,10 +243,10 @@
                         <!-- Questions will be inserted here -->
                     </div>
                     <div class="flex items-center justify-between pt-2 border-t border-surface-100 dark:border-surface-700">
-                        <p class="text-xs text-surface-500 dark:text-surface-400">Click the question to insert it into your entry</p>
+                        <p class="text-xs text-surface-500 dark:text-surface-400">{{ t('ui.entry.deeper.click_to_insert') }}</p>
                         <button type="button" onclick="deeperNewQuestion()"
                                 class="text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">
-                            New Question
+                            {{ t('ui.entry.deeper.new_question') }}
                         </button>
                     </div>
                 </div>
@@ -263,7 +263,7 @@
                         <p id="deeper-error-message" class="text-sm text-red-700 dark:text-red-300"></p>
                         <button type="button" onclick="deeperGenerate(true)"
                                 class="mt-2 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 underline">
-                            Try Again
+                            {{ t('ui.entry.voice.try_again') }}
                         </button>
                     </div>
                 </div>
@@ -271,7 +271,7 @@
 
             <!-- Empty/hint state -->
             <div id="deeper-empty-state" class="px-4 py-3">
-                <p class="text-sm text-surface-500 dark:text-surface-400">Write some content above, then click "Generate Question" to get an AI-powered prompt that helps you explore your thoughts more deeply.</p>
+                <p class="text-sm text-surface-500 dark:text-surface-400">{{ t('ui.entry.deeper.empty_hint') }}</p>
             </div>
         </div>
 
@@ -367,17 +367,17 @@
         <div class="flex gap-3">
             {% if editing %}
             <button type="submit" class="bg-primary-600 text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-primary-700 transition">
-                Save Changes
+                {{ t('ui.entry.save_changes') }}
             </button>
             {% else %}
             <button type="button" id="finish-entry-btn" onclick="finishEntry()" class="bg-primary-600 text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-primary-700 transition">
-                Finish Entry
+                {{ t('ui.entry.finish_entry') }}
             </button>
             <button type="submit" class="bg-surface-200 dark:bg-surface-600 text-surface-700 dark:text-surface-200 font-medium px-6 py-2.5 rounded-lg hover:bg-surface-300 dark:hover:bg-surface-500 transition">
-                Save Without Analysis
+                {{ t('ui.entry.save_without_analysis') }}
             </button>
             {% endif %}
-            <a href="{% if editing %}/entry/{{ entry.id }}{% else %}/{% endif %}" class="bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-300 font-medium px-6 py-2.5 rounded-lg hover:bg-surface-200 dark:hover:bg-surface-600 transition">Cancel</a>
+            <a href="{% if editing %}/entry/{{ entry.id }}{% else %}/{% endif %}" class="bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-300 font-medium px-6 py-2.5 rounded-lg hover:bg-surface-200 dark:hover:bg-surface-600 transition">{{ t('ui.entry.cancel') }}</a>
         </div>
             </form>
         </div>
@@ -385,12 +385,12 @@
         <aside class="mt-8 lg:mt-0 lg:sticky lg:top-6 self-start" aria-live="polite">
             <div class="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-2xl p-5">
                 <div class="flex items-center justify-between mb-3">
-                    <h2 class="text-sm font-semibold text-surface-900 dark:text-surface-100">Past Memories</h2>
-                    <span class="text-[10px] uppercase tracking-wider text-surface-400">Auto</span>
+                    <h2 class="text-sm font-semibold text-surface-900 dark:text-surface-100">{{ t('ui.entry.past_memories.title') }}</h2>
+                    <span class="text-[10px] uppercase tracking-wider text-surface-400">{{ t('ui.entry.past_memories.auto') }}</span>
                 </div>
-                <p class="text-xs text-surface-500 dark:text-surface-400 mb-4">As you write, we will surface entries that feel related.</p>
+                <p class="text-xs text-surface-500 dark:text-surface-400 mb-4">{{ t('ui.entry.past_memories.description') }}</p>
                 <div id="memory-empty" class="text-xs text-surface-400 bg-surface-50 dark:bg-surface-700/40 rounded-lg p-3">
-                    No similar memories yet. Keep writing to see connections.
+                    {{ t('ui.entry.past_memories.empty') }}
                 </div>
                 <div id="memory-list" class="space-y-3 hidden"></div>
             </div>
@@ -467,7 +467,7 @@
             <!-- Action buttons -->
             <div id="analysis-actions" class="flex gap-3 justify-end">
                 <button type="button" id="analysis-cancel-btn" onclick="cancelAnalysis()" class="px-4 py-2 text-sm font-medium text-surface-600 dark:text-surface-400 hover:text-surface-800 dark:hover:text-surface-200 transition">
-                    Cancel
+                    {{ t('ui.entry.cancel') }}
                 </button>
             </div>
         </div>
@@ -505,7 +505,8 @@
         tagNoKnownMatches: {{ t('ui.entry.tags.no_known_matches') | tojson }},
         tagNewBadge: {{ t('ui.entry.tags.new_badge') | tojson }},
         tagNoNewIdeas: {{ t('ui.entry.tags.no_new_ideas') | tojson }},
-        tagEmptyHint: {{ t('ui.entry.tags.empty_hint') | tojson }}
+        tagEmptyHint: {{ t('ui.entry.tags.empty_hint') | tojson }},
+        cancel: {{ t('ui.entry.cancel') | tojson }}
     };
 
     // ── Word count ──────────────────────────────────────────────────────
@@ -1110,10 +1111,10 @@
         analysisProgressBar.style.width = '0%';
         analysisProgressText.textContent = 'Starting analysis...';
         analysisError.classList.add('hidden');
-        analysisCancelBtn.textContent = 'Cancel';
+        analysisCancelBtn.textContent = i18nEntry.cancel;
         analysisActions.innerHTML = `
             <button type="button" id="analysis-cancel-btn" onclick="cancelAnalysis()" class="px-4 py-2 text-sm font-medium text-surface-600 dark:text-surface-400 hover:text-surface-800 dark:hover:text-surface-200 transition">
-                Cancel
+                ${i18nEntry.cancel}
             </button>
         `;
     }

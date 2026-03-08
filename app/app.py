@@ -1324,7 +1324,7 @@ def api_insights_big_five():
     # Only analyze if there are sufficient entries
     if len(summaries) < 3:
         return jsonify({
-            "error": "Not enough entries for analysis",
+            "error": _t("insights.big_five.not_enough_entries"),
             "message": _t("insights.big_five.min_entries")
         }), 200
     
@@ -3006,7 +3006,9 @@ def api_analyze_entry():
 @app.route("/status")
 def system_status():
     """Comprehensive system status page."""
-    diagnostics = get_detailed_status()
+    settings = _get_settings_with_defaults()
+    language = normalize_language(settings.get("ui_language") or Config.DEFAULT_LANGUAGE)
+    diagnostics = get_detailed_status(language)
     # Return JSON if requested (for setup wizard)
     if request.args.get("format") == "json":
         return jsonify(diagnostics)
@@ -3016,7 +3018,9 @@ def system_status():
 @app.route("/api/status")
 def api_status():
     """API endpoint for system diagnostics."""
-    diagnostics = get_detailed_status()
+    settings = _get_settings_with_defaults()
+    language = normalize_language(settings.get("ui_language") or Config.DEFAULT_LANGUAGE)
+    diagnostics = get_detailed_status(language)
     return jsonify(diagnostics)
 
 

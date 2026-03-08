@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 
 import requests
 from config import Config
+from .i18n import translate as _t
 
 # Optional import for system diagnostics
 try:
@@ -284,9 +285,12 @@ def refresh_service_status() -> ServiceStatus:
 # ---------------------------------------------------------------------------
 
 
-def get_detailed_status() -> dict:
+def get_detailed_status(lang="de") -> dict:
     """Get comprehensive diagnostic information for all services.
 
+    Args:
+        lang: Language code for localized messages (default: "de")
+    
     Returns a dict with detailed status for each service including:
     - Connection status
     - Version/model info
@@ -315,37 +319,37 @@ def get_detailed_status() -> dict:
     }
 
     # Ollama diagnostics
-    ollama_diag = _diagnose_ollama()
+    ollama_diag = _diagnose_ollama(lang)
     diagnostics["services"]["ollama"] = ollama_diag
 
     # LM Studio diagnostics
-    lmstudio_diag = _diagnose_lmstudio()
+    lmstudio_diag = _diagnose_lmstudio(lang)
     diagnostics["services"]["lmstudio"] = lmstudio_diag
 
     # Whisper diagnostics
-    whisper_diag = _diagnose_whisper()
+    whisper_diag = _diagnose_whisper(lang)
     diagnostics["services"]["whisper"] = whisper_diag
 
     # ChromaDB diagnostics
-    chromadb_diag = _diagnose_chromadb()
+    chromadb_diag = _diagnose_chromadb(lang)
     diagnostics["services"]["chromadb"] = chromadb_diag
 
     # Embeddings diagnostics
-    embeddings_diag = _diagnose_embeddings()
+    embeddings_diag = _diagnose_embeddings(lang)
     diagnostics["services"]["embeddings"] = embeddings_diag
 
     # Stable Diffusion diagnostics
-    sd_diag = _diagnose_stable_diffusion()
+    sd_diag = _diagnose_stable_diffusion(lang)
     diagnostics["services"]["stable_diffusion"] = sd_diag
 
     # Database diagnostics
-    db_diag = _diagnose_database()
+    db_diag = _diagnose_database(lang)
     diagnostics["services"]["database"] = db_diag
 
     return diagnostics
 
 
-def _diagnose_ollama() -> dict:
+def _diagnose_ollama(lang="de") -> dict:
     """Get detailed Ollama diagnostics."""
     diag = {
         "name": "Ollama (LLM)",
@@ -398,22 +402,22 @@ def _diagnose_ollama() -> dict:
                     break
 
     except requests.ConnectionError:
-        diag["message"] = "Cannot connect to Ollama"
+        diag["message"] = _t("service.ollama.cannot_connect", lang)
         diag["setup_instructions"] = (
-            "1. Install Ollama from https://ollama.ai\n"
-            "2. Start the server: ollama serve\n"
-            "3. Pull a model: ollama pull llama3.2"
+            f"1. {_t('setup.ollama.step1', lang)}\n"
+            f"2. {_t('setup.ollama.step2', lang)}\n"
+            f"3. {_t('setup.ollama.step3', lang, model=Config.OLLAMA_MODEL)}"
         )
     except requests.Timeout:
-        diag["message"] = "Connection timed out"
-        diag["setup_instructions"] = "Ollama may be overloaded. Try restarting the server: ollama serve"
+        diag["message"] = _t("service.ollama.connection_timeout", lang)
+        diag["setup_instructions"] = _t('setup.ollama.overloaded', lang)
     except Exception as e:
         diag["message"] = f"Error: {str(e)}"
 
     return diag
 
 
-def _diagnose_lmstudio() -> dict:
+def _diagnose_lmstudio(lang="de") -> dict:
     """Get detailed LM Studio diagnostics."""
     diag = {
         "name": "LM Studio (LLM)",
@@ -445,8 +449,8 @@ def _diagnose_lmstudio() -> dict:
         diag["details"]["model_list"] = model_ids[:10]
 
         if not model_ids:
-            diag["message"] = "Connected, but no models loaded"
-            diag["setup_instructions"] = "Load a model in LM Studio's local server first."
+            diag["message"] = _t("service.lmstudio.no_models_loaded", lang)
+            diag["setup_instructions"] = _t("setup.lmstudio.load_model_first", lang)
             return diag
 
         configured_ok = any(Config.LMSTUDIO_MODEL == model_id for model_id in model_ids)
@@ -454,38 +458,34 @@ def _diagnose_lmstudio() -> dict:
 
         diag["available"] = True
         if configured_ok:
-            diag["message"] = f"Connected - model '{Config.LMSTUDIO_MODEL}' available"
+            diag["message"] = _t("service.lmstudio.connected_model_available", lang, model=Config.LMSTUDIO_MODEL)
         else:
-            diag["message"] = (
-                f"Connected, but configured model '{Config.LMSTUDIO_MODEL}' not found"
-            )
-            diag["setup_instructions"] = (
-                "Set LMSTUDIO_MODEL to one of the available model IDs or load the configured model."
-            )
+            diag["message"] = _t("service.lmstudio.model_not_found", lang, model=Config.LMSTUDIO_MODEL)
+            diag["setup_instructions"] = _t("setup.lmstudio.set_model", lang)
 
     except requests.ConnectionError:
-        diag["message"] = "Cannot connect to LM Studio"
+        diag["message"] = _t("service.lmstudio.cannot_connect", lang)
         diag["setup_instructions"] = (
-            "1. Open LM Studio\n"
-            "2. Start Local Server (OpenAI-compatible)\n"
-            f"3. Ensure endpoint is reachable at {Config.LMSTUDIO_BASE_URL}"
+            f"1. {_t('setup.lmstudio.step1', lang)}\n"
+            f"2. {_t('setup.lmstudio.step2', lang)}\n"
+            f"3. {_t('setup.lmstudio.step4', lang)}"
         )
     except requests.Timeout:
-        diag["message"] = "Connection timed out"
-        diag["setup_instructions"] = "LM Studio may be busy; try again or restart its local server."
+        diag["message"] = _t("service.ollama.connection_timeout", lang)
+        diag["setup_instructions"] = _t('setup.ollama.overloaded', lang)
     except Exception as e:
         diag["message"] = f"Error: {str(e)}"
         diag["setup_instructions"] = (
-            "1. Install LM Studio from https://lmstudio.ai\n"
-            "2. Open LM Studio and load a model\n"
-            "3. Go to Developer tab and start the Local Server\n"
-            f"4. Verify it's accessible at {Config.LMSTUDIO_BASE_URL}/models"
+            f"1. {_t('setup.lmstudio.step1', lang)}\n"
+            f"2. {_t('setup.lmstudio.step3', lang)}\n"
+            f"3. {_t('setup.lmstudio.step2', lang)}\n"
+            f"4. {_t('setup.lmstudio.step4', lang)}"
         )
 
     return diag
 
 
-def _diagnose_whisper() -> dict:
+def _diagnose_whisper(lang="de") -> dict:
     """Get detailed Whisper diagnostics."""
     diag = {
         "name": "Whisper (Voice)",
@@ -535,7 +535,7 @@ def _diagnose_whisper() -> dict:
     return diag
 
 
-def _diagnose_chromadb() -> dict:
+def _diagnose_chromadb(lang="de") -> dict:
     """Get detailed ChromaDB diagnostics."""
     diag = {
         "name": "ChromaDB (Vector Store)",
@@ -590,7 +590,7 @@ def _diagnose_chromadb() -> dict:
     return diag
 
 
-def _diagnose_embeddings() -> dict:
+def _diagnose_embeddings(lang="de") -> dict:
     """Get detailed embeddings diagnostics."""
     diag = {
         "name": "Sentence-Transformers (Embeddings)",
@@ -624,7 +624,7 @@ def _diagnose_embeddings() -> dict:
     return diag
 
 
-def _diagnose_stable_diffusion() -> dict:
+def _diagnose_stable_diffusion(lang="de") -> dict:
     """Get detailed Stable Diffusion diagnostics."""
     diag = {
         "name": "Stable Diffusion (Images)",
@@ -644,10 +644,10 @@ def _diagnose_stable_diffusion() -> dict:
         diag["message"] = "Disabled in configuration"
         diag["details"]["reason"] = "SD_ENABLED=false"
         diag["setup_instructions"] = (
-            "To enable image generation:\n"
-            "1. Install Stable Diffusion WebUI (AUTOMATIC1111)\n"
-            "2. Start with API enabled: ./webui.sh --api\n"
-            "3. Set SD_ENABLED=true in .env"
+            f"{_t('setup.sd.enable_header')}\n"
+            f"1. {_t('setup.sd.install')}\n"
+            f"2. {_t('setup.sd.start_api')}\n"
+            f"3. {_t('setup.sd.enable_env')}"
         )
         return diag
 
@@ -766,7 +766,7 @@ def _diagnose_stable_diffusion() -> dict:
     return diag
 
 
-def _diagnose_database() -> dict:
+def _diagnose_database(lang="de") -> dict:
     """Get detailed database diagnostics."""
     import sqlite3
 

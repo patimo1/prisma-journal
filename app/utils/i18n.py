@@ -3,6 +3,7 @@
 TRANSLATIONS = {
     "en": {
         # Insights
+        "insights.big_five.not_enough_entries": "Not enough entries for analysis",
         "insights.big_five.min_entries": "At least 3 entries are required for Big Five analysis.",
         "insights.issues.min_entries": "At least 5 entries are required for active issue analysis.",
         "insights.issues.cached": "No new entries since the last analysis.",
@@ -241,6 +242,9 @@ TRANSLATIONS = {
         "ui.entry.mood": "Mood",
         "ui.entry.tags": "Tags",
         "ui.entry.save": "Save",
+        "ui.entry.save_changes": "Save Changes",
+        "ui.entry.finish_entry": "Finish Entry",
+        "ui.entry.save_without_analysis": "Save Without Analysis",
         "ui.entry.cancel": "Cancel",
         "ui.entry.delete": "Delete",
         "ui.entry.edit": "Edit",
@@ -259,6 +263,10 @@ TRANSLATIONS = {
         "ui.entry.framework_done": "Done ✓",
         "ui.entry.voice_input": "Voice Input",
         "ui.entry.voice_record": "Record",
+        "ui.entry.past_memories.title": "Past Memories",
+        "ui.entry.past_memories.auto": "Auto",
+        "ui.entry.past_memories.description": "As you write, we will surface entries that feel related.",
+        "ui.entry.past_memories.empty": "No similar memories yet. Keep writing to see connections.",
         "ui.search.placeholder": "Search entries...",
         "ui.search.no_results": "No entries found",
         "ui.base.title_default": "Journal",
@@ -486,11 +494,180 @@ TRANSLATIONS = {
         "ui.ask.send": "Send",
         "error.load_failed": "Question could not be loaded",
         "error.new_question_failed": "New question could not be loaded",
+        
+        # Status Page
+        "ui.status.title": "System Status",
+        "ui.status.subtitle": "Monitor all services and system health.",
+        "ui.status.last_updated": "Last updated:",
+        "ui.status.refresh_all": "Refresh All",
+        "ui.status.health_summary": "Health Summary",
+        "ui.status.services_online": "Services Online",
+        "ui.status.memory_usage": "Memory Usage",
+        "ui.status.platform": "Platform",
+        "ui.status.python": "Python",
+        "ui.status.online": "Online",
+        "ui.status.offline": "Offline",
+        "ui.status.configuration": "Configuration",
+        "ui.status.endpoint": "Endpoint",
+        "ui.status.model": "Model",
+        "ui.status.timeout": "Timeout",
+        "ui.status.show_details": "Show Details",
+        "ui.status.setup_instructions": "Setup Instructions",
+        "ui.status.troubleshooting_guide": "Troubleshooting Guide",
+        "ui.status.ai_not_working": "AI Analysis Not Working",
+        "ui.status.using_ollama": "Using Ollama:",
+        "ui.status.using_lmstudio": "Using LM Studio:",
+        "ui.status.voice_not_working": "Voice Transcription Not Working",
+        "ui.status.semantic_search_not_working": "Semantic Search Not Finding Results",
+        "ui.status.database_errors": "Database Errors or Corruption",
+        # Troubleshooting steps - Ollama
+        "ui.status.troubleshooting.ollama.step1": "Ensure Ollama is running:",
+        "ui.status.troubleshooting.ollama.step2": "Pull a model:",
+        "ui.status.troubleshooting.ollama.step3": "Check the endpoint matches your .env:",
+        "ui.status.troubleshooting.ollama.step4": "If analysis is slow, try a smaller model or increase",
+        # Troubleshooting steps - LM Studio
+        "ui.status.troubleshooting.lmstudio.step1": "Open LM Studio and start the Local Server (Developer tab)",
+        "ui.status.troubleshooting.lmstudio.step2": "Load a model in LM Studio before starting the server",
+        "ui.status.troubleshooting.lmstudio.step3": "Check endpoint matches your .env:",
+        "ui.status.troubleshooting.lmstudio.step4": "Set",
+        "ui.status.troubleshooting.lmstudio.step4_suffix": "in .env to use it as the active provider",
+        "ui.status.troubleshooting.lmstudio.step5": "Verify",
+        "ui.status.troubleshooting.lmstudio.step5_suffix": "matches the loaded model ID",
+        "ui.status.troubleshooting.lmstudio.step6": "Restart the app with",
+        "ui.status.troubleshooting.lmstudio.step6_suffix": "flag after changing settings",
+        # Troubleshooting steps - Voice
+        "ui.status.troubleshooting.voice.step1": "Install Whisper:",
+        "ui.status.troubleshooting.voice.step2": "Install ffmpeg (required for audio processing)",
+        "ui.status.troubleshooting.voice.step3": "Grant microphone permissions in your browser",
+        "ui.status.troubleshooting.voice.step4": "For better accuracy, use a larger model in Settings",
+        # Troubleshooting steps - Semantic Search
+        "ui.status.troubleshooting.semantic.step1": "Ensure ChromaDB is operational (check above)",
+        "ui.status.troubleshooting.semantic.step2": "Entries need to be indexed - older entries may need re-indexing",
+        "ui.status.troubleshooting.semantic.step3": "Try keyword search as a fallback",
+        "ui.status.troubleshooting.semantic.step4": "If ChromaDB is corrupted, delete the folder and restart",
+        # Troubleshooting steps - Database
+        "ui.status.troubleshooting.database.step1": "Export your data first (Settings > Export)",
+        "ui.status.troubleshooting.database.step2": "Try running:",
+        "ui.status.troubleshooting.database.step3": "If corrupted, restore from backup or delete and re-import",
+        "ui.status.troubleshooting.database.step4": "Enable WAL mode for better durability (default in this app)",
+        "ui.status.quick_actions": "Quick Actions",
+        "ui.status.open_settings": "Open Settings",
+        "ui.status.download_diagnostics": "Download Diagnostics",
+        "ui.status.test_all_services": "Test All Services",
+        "ui.status.refreshing": "Refreshing...",
+        "ui.status.testing": "Testing...",
+        "ui.status.cannot_connect": "Cannot connect to",
+        "ui.status.failed_refresh": "Failed to refresh status",
+        "ui.status.network_error": "Network error while refreshing",
+        "ui.status.test_results": "Test Results:",
+        "ui.status.pass": "PASS",
+        "ui.status.fail": "FAIL",
+        "ui.status.error_running_tests": "Error running tests:",
+        
+        # Service Status Messages - Ollama
+        "service.ollama.cannot_connect": "Cannot connect to Ollama",
+        "service.ollama.connection_timeout": "Connection timed out",
+        "service.ollama.connected_model_available": "Connected — model '{model}' available",
+        "service.ollama.no_models": "Ollama is running but has no models pulled. Run: ollama pull {model}",
+        "service.ollama.model_not_found": "Ollama is running but model '{model}' not found. Available: {available}. Run: ollama pull {model}",
+        
+        # Service Status Messages - LM Studio
+        "service.lmstudio.cannot_connect": "Cannot connect to LM Studio",
+        "service.lmstudio.connected_model_available": "Connected - model '{model}' available",
+        "service.lmstudio.no_models_loaded": "Connected, but no models loaded",
+        "service.lmstudio.model_not_found": "Connected, but configured model '{model}' not found",
+        "service.lmstudio.models_available_set": "LM Studio is running. Available models: {models}. Set LMSTUDIO_MODEL to match.",
+        
+        # Service Status Messages - Whisper
+        "service.whisper.installed": "Installed — will use '{model}' model (loaded on first use)",
+        "service.whisper.not_installed": "openai-whisper is not installed. Run: pip install openai-whisper  (also requires ffmpeg)",
+        
+        # Setup Instructions - Ollama
+        "setup.ollama.install": "Install Ollama from https://ollama.ai",
+        "setup.ollama.start_server": "Start the server: ollama serve",
+        "setup.ollama.pull_model": "Pull a model: ollama pull llama3.2",
+        "setup.ollama.overloaded": "Ollama may be overloaded. Try restarting the server: ollama serve",
+        "setup.ollama.step1": "Install Ollama from https://ollama.ai",
+        "setup.ollama.step2": "Start the server: ollama serve",
+        "setup.ollama.step3": "Pull a model: ollama pull {model}",
+        
+        # Setup Instructions - LM Studio
+        "setup.lmstudio.open_and_start": "Open LM Studio and start the  Local Server (Developer tab)",
+        "setup.lmstudio.ensure_running": "Ensure LM Studio is running with the local server enabled",
+        "setup.lmstudio.load_model_first": "Load a model in LM Studio's local server first.",
+        "setup.lmstudio.set_model":"Set LMSTUDIO_MODEL to one of the available model IDs or load the configured model",
+        "setup.lmstudio.step1": "Open LM Studio",
+        "setup.lmstudio.step2": "Go to Developer tab and start Local Server",
+        "setup.lmstudio.step3": "Load a model before starting the server",
+        "setup.lmstudio.step4": "Verify endpoint matches LMSTUDIO_BASE_URL",
+        
+        # Setup Instructions - Stable Diffusion
+        "setup.sd.enable_header": "To enable image generation:",
+        "setup.sd.install": "Install Stable Diffusion WebUI (AUTOMATIC1111)",
+        "setup.sd.start_api": "Start with API enabled: ./webui.sh --api",
+        "setup.sd.enable_env": "Set SD_ENABLED=true in .env",
+        
+        # Setup Wizard
+        "ui.setup.ai_insights_hint": "After writing, click \"Finish Entry\" to get emotion analysis, summaries, and artwork.",
+        "ui.setup.semantic_search_desc": "Use semantic search to find entries by meaning, not just keywords.",
+        "ui.entry.voice.record": "Record",
+        "ui.entry.voice.recording": "Recording:",
+        "ui.entry.voice.transcribing": "Transcribing...",
+        "ui.entry.voice.detected": "Detected:",
+        "ui.entry.voice.confidence": "Confidence:",
+        "ui.entry.voice.insert_at_cursor": "Insert at Cursor",
+        "ui.entry.voice.replace_all": "Replace All",
+        "ui.entry.voice.dismiss": "Dismiss",
+        "ui.entry.voice.try_again": "Try Again",
+        
+        # Entry Form - Go Deeper
+        "ui.entry.deeper.title": "Go Deeper",
+        "ui.entry.deeper.generate_question": "Generate Question",
+        "ui.entry.deeper.generating": "Generating a reflective question...",
+        "ui.entry.deeper.click_to_insert": "Click the question to insert it into your entry",
+        "ui.entry.deeper.new_question": "New Question",
+        "ui.entry.deeper.empty_hint": "Write some content above, then click \"Generate Question\" to get an AI-powered prompt that helps you explore your thoughts more deeply.",
+        
+        # Error Pages
+        "ui.error.404.title": "Page Not Found",
+        "ui.error.404.subtitle": "The page you're looking for doesn't exist or has been moved.",
+        "ui.error.404.back_home": "Back to Dashboard",
+        "ui.error.404.view_journal": "View Journal",
+        "ui.error.404.search_hint": "Looking for something specific? Try the",
+        "ui.error.404.search_page": "search page",
+        "ui.error.500.title": "Something Went Wrong",
+        "ui.error.500.subtitle": "We're sorry, but something went wrong on our end.",
+        "ui.error.500.suggestions": "What you can do:",
+        "ui.error.500.refresh": "Refresh the page",
+        "ui.error.500.go_back": "Go back to the previous page",
+        "ui.error.500.check_status": "Check the",
+        "ui.error.500.system_status": "System Status",
+        "ui.error.500.page_text": "page",
+        "ui.error.500.report_issue": "If the problem persists, please report it",
+        "ui.error.500.back_dashboard": "Back to Dashboard",
+        "ui.error.500.check_status_btn": "Check Status",
+        
+        # Ask / Chat
+        "ui.ask.error_message": "Something went wrong. Please try again.",
+        "ui.ask.new_chat_title": "New chat",
+        "ui.ask.untitled_chat": "Untitled chat",
+        "ui.ask.entry_focus": "Entry focus",
+        "ui.ask.global": "Global",
+        "ui.ask.entry_focus_desc": "Entry focus: discussing a single entry",
+        "ui.ask.global_context_desc": "Global context: all entries",
+        "ui.ask.therapist": "Therapist",
+        "ui.ask.data_analyst": "Data Analyst",
+        "ui.ask.context_prefix": "Context:",
+        "ui.ask.context_all_entries": "all entries",
+        
+        # Setup Wizard
+        "ui.setup.semantic_search_desc": "Use semantic search to find entries by meaning, not just keywords.",
     },
     
     # German translations
     "de": {
         # Insights
+        "insights.big_five.not_enough_entries": "Nicht genügend Einträge für die Analyse",
         "insights.big_five.min_entries": "Mindestens 3 Einträge sind für die Big Five Analyse erforderlich.",
         "insights.issues.min_entries": "Mindestens 5 Einträge sind für die Analyse aktiver Themen erforderlich.",
         "insights.issues.cached": "Keine neuen Einträge seit der letzten Analyse.",
@@ -727,6 +904,9 @@ TRANSLATIONS = {
         "ui.entry.mood": "Stimmung",
         "ui.entry.tags": "Tags",
         "ui.entry.save": "Speichern",
+        "ui.entry.save_changes": "Änderungen speichern",
+        "ui.entry.finish_entry": "Eintrag abschließen",
+        "ui.entry.save_without_analysis": "Ohne Analyse speichern",
         "ui.entry.cancel": "Abbrechen",
         "ui.entry.delete": "Löschen",
         "ui.entry.edit": "Bearbeiten",
@@ -745,6 +925,10 @@ TRANSLATIONS = {
         "ui.entry.framework_done": "Fertig ✓",
         "ui.entry.voice_input": "Spracheingabe",
         "ui.entry.voice_record": "Aufnahme",
+        "ui.entry.past_memories.title": "Vergangene Erinnerungen",
+        "ui.entry.past_memories.auto": "Auto",
+        "ui.entry.past_memories.description": "Während du schreibst, zeigen wir dir ähnliche Einträge an.",
+        "ui.entry.past_memories.empty": "Noch keine ähnlichen Erinnerungen. Schreibe weiter, um Verbindungen zu sehen.",
         "ui.search.placeholder": "Einträge durchsuchen...",
         "ui.search.no_results": "Keine Einträge gefunden",
         "ui.base.title_default": "Tagebuch",
@@ -972,22 +1156,193 @@ TRANSLATIONS = {
         "ui.ask.send": "Senden",
         "error.load_failed": "Frage konnte nicht geladen werden",
         "error.new_question_failed": "Neue Frage konnte nicht geladen werden",
+        
+        # Status Page
+        "ui.status.title": "Systemstatus",
+        "ui.status.subtitle": "Alle Dienste und Systemgesundheit überwachen.",
+        "ui.status.last_updated": "Zuletzt aktualisiert:",
+        "ui.status.refresh_all": "Alle aktualisieren",
+        "ui.status.health_summary": "Gesundheitsübersicht",
+        "ui.status.services_online": "Dienste Online",
+        "ui.status.memory_usage": "Speichernutzung",
+        "ui.status.platform": "Plattform",
+        "ui.status.python": "Python",
+        "ui.status.online": "Online",
+        "ui.status.offline": "Offline",
+        "ui.status.configuration": "Konfiguration",
+        "ui.status.endpoint": "Endpunkt",
+        "ui.status.model": "Modell",
+        "ui.status.timeout": "Timeout",
+        "ui.status.show_details": "Details anzeigen",
+        "ui.status.setup_instructions": "Setup-Anweisungen",
+        "ui.status.troubleshooting_guide": "Fehlerbehebungsanleitung",
+        "ui.status.ai_not_working": "KI-Analyse funktioniert nicht",
+        "ui.status.using_ollama": "Mit Ollama:",
+        "ui.status.using_lmstudio": "Mit LM Studio:",
+        "ui.status.voice_not_working": "Sprachtranskription funktioniert nicht",
+        "ui.status.semantic_search_not_working": "Semantische Suche findet keine Ergebnisse",
+        "ui.status.database_errors": "Datenbankfehler oder -beschädigung",
+        # Troubleshooting steps - Ollama
+        "ui.status.troubleshooting.ollama.step1": "Stelle sicher, dass Ollama läuft:",
+        "ui.status.troubleshooting.ollama.step2": "Lade ein Modell herunter:",
+        "ui.status.troubleshooting.ollama.step3": "Überprüfe, ob der Endpunkt mit deiner .env übereinstimmt:",
+        "ui.status.troubleshooting.ollama.step4": "Wenn die Analyse langsam ist, versuche ein kleineres Modell oder erhöhe",
+        # Troubleshooting steps - LM Studio
+        "ui.status.troubleshooting.lmstudio.step1": "Öffne LM Studio und starte den Local Server (Developer Tab)",
+        "ui.status.troubleshooting.lmstudio.step2": "Lade ein Modell in LM Studio, bevor du den Server startest",
+        "ui.status.troubleshooting.lmstudio.step3": "Überprüfe, ob der Endpunkt mit deiner .env übereinstimmt:",
+        "ui.status.troubleshooting.lmstudio.step4": "Setze",
+        "ui.status.troubleshooting.lmstudio.step4_suffix": "in der .env, um ihn als aktiven Provider zu verwenden",
+        "ui.status.troubleshooting.lmstudio.step5": "Überprüfe, ob",
+        "ui.status.troubleshooting.lmstudio.step5_suffix": "mit der geladenen Modell-ID übereinstimmt",
+        "ui.status.troubleshooting.lmstudio.step6": "Starte die App mit",
+        "ui.status.troubleshooting.lmstudio.step6_suffix": "Flag neu, nachdem du Einstellungen geändert hast",
+        # Troubleshooting steps - Voice
+        "ui.status.troubleshooting.voice.step1": "Installiere Whisper:",
+        "ui.status.troubleshooting.voice.step2": "Installiere ffmpeg (erforderlich für Audioverarbeitung)",
+        "ui.status.troubleshooting.voice.step3": "Erlaube Mikrofon-Zugriff in deinem Browser",
+        "ui.status.troubleshooting.voice.step4": "Für bessere Genauigkeit verwende ein größeres Modell in den Einstellungen",
+        # Troubleshooting steps - Semantic Search
+        "ui.status.troubleshooting.semantic.step1": "Stelle sicher, dass ChromaDB funktioniert (siehe oben)",
+        "ui.status.troubleshooting.semantic.step2": "Einträge müssen indexiert werden - ältere Einträge benötigen möglicherweise eine Neuindexierung",
+        "ui.status.troubleshooting.semantic.step3": "Versuche als Fallback die Stichwortsuche",
+        "ui.status.troubleshooting.semantic.step4": "Wenn ChromaDB beschädigt ist, lösche den Ordner und starte neu",
+        # Troubleshooting steps - Database
+        "ui.status.troubleshooting.database.step1": "Exportiere zuerst deine Daten (Einstellungen > Exportieren)",
+        "ui.status.troubleshooting.database.step2": "Versuche auszuführen:",
+        "ui.status.troubleshooting.database.step3": "Wenn beschädigt, stelle aus Backup wieder her oder lösche und importiere neu",
+        "ui.status.troubleshooting.database.step4": "Aktiviere WAL-Modus für bessere Haltbarkeit (Standard in dieser App)",
+        
+        # Service Status Messages - Ollama
+        "service.ollama.cannot_connect": "Verbindung zu Ollama nicht möglich",
+        "service.ollama.connection_timeout": "Zeitüberschreitung der Verbindung",
+        "service.ollama.connected_model_available": "Verbunden — Modell '{model}' verfügbar",
+        "service.ollama.no_models": "Ollama läuft, aber es wurden keine Modelle heruntergeladen. Führe aus: ollama pull {model}",
+        "service.ollama.model_not_found": "Ollama läuft, aber Modell '{model}' nicht gefunden. Verfügbar: {available}. Führe aus: ollama pull {model}",
+        
+        # Service Status Messages - LM Studio
+        "service.lmstudio.cannot_connect": "Verbindung zu LM Studio nicht möglich",
+        "service.lmstudio.connected_model_available": "Verbunden - Modell '{model}' verfügbar",
+        "service.lmstudio.no_models_loaded": "Verbunden, aber keine Modelle geladen",
+        "service.lmstudio.model_not_found": "Verbunden, aber konfiguriertes Modell '{model}' nicht gefunden",
+        "service.lmstudio.models_available_set": "LM Studio läuft. Verfügbare Modelle: {models}. Setze LMSTUDIO_MODEL entsprechend.",
+        
+        # Service Status Messages - Whisper
+        "service.whisper.installed": "Installiert — wird Modell '{model}' verwenden (wird bei erster Verwendung geladen)",
+        "service.whisper.not_installed": "openai-whisper ist nicht installiert. Führe aus: pip install openai-whisper  (benötigt auch ffmpeg)",
+        
+        # Setup Instructions - Ollama (German)
+        "setup.ollama.step1": "Installiere Ollama von https://ollama.ai",
+        "setup.ollama.step2": "Starte den Server: ollama serve",
+        "setup.ollama.step3": "Lade ein Modell: ollama pull {model}",
+        
+        # Setup Instructions - LM Studio (German)
+        "setup.lmstudio.open_and_start": "Öffne LM Studio und starte den Local Server (Developer Tab)",
+        "setup.lmstudio.ensure_running": "Stelle sicher, dass LM Studio mit aktiviertem Local Server läuft",
+        "setup.lmstudio.load_model_first": "Lade zuerst ein Modell in LM Studios Local Server.",
+        "setup.lmstudio.set_model": "Setze LMSTUDIO_MODEL auf eine der verfügbaren Modell-IDs oder lade das konfigurierte Modell",
+        "setup.lmstudio.step1": "Öffne LM Studio",
+        "setup.lmstudio.step2": "Gehe zum Developer Tab und starte den Local Server",
+        "setup.lmstudio.step3": "Lade ein Modell, bevor du den Server startest",
+        "setup.lmstudio.step4": "Überprüfe, ob der Endpunkt mit LMSTUDIO_BASE_URL übereinstimmt",
+        
+        "ui.status.quick_actions": "Schnellaktionen",
+        "ui.status.open_settings": "Einstellungen öffnen",
+        "ui.status.download_diagnostics": "Diagnose herunterladen",
+        "ui.status.test_all_services": "Alle Dienste testen",
+        "ui.status.refreshing": "Aktualisiere...",
+        "ui.status.testing": "Teste...",
+        "ui.status.cannot_connect": "Verbindung nicht möglich zu",
+        "ui.status.failed_refresh": "Status konnte nicht aktualisiert werden",
+        "ui.status.network_error": "Netzwerkfehler beim Aktualisieren",
+        "ui.status.test_results": "Testergebnisse:",
+        "ui.status.pass": "ERFOLGREICH",
+        "ui.status.fail": "FEHLGESCHLAGEN",
+        "ui.status.error_running_tests": "Fehler beim Ausführen der Tests:",
+        
+        # Setup Instructions - Ollama
+        "setup.ollama.install": "Installiere Ollama von https://ollama.ai",
+        "setup.ollama.start_server": "Starte den Server: ollama serve",
+        "setup.ollama.pull_model": "Lade ein Modell herunter: ollama pull llama3.2",
+        "setup.ollama.overloaded": "Ollama ist möglicherweise überlastet. Versuche den Server neu zu starten: ollama serve",
+        
+        # Setup Instructions - Stable Diffusion
+        "setup.sd.enable_header": "Um Bildgenerierung zu aktivieren:",
+        "setup.sd.install": "Installiere Stable Diffusion WebUI (AUTOMATIC1111)",
+        "setup.sd.start_api": "Starte mit aktivierter API: ./webui.sh --api",
+        "setup.sd.enable_env": "Setze SD_ENABLED=true in der .env",
+        
+        # Setup Wizard
+        "ui.setup.ai_insights_hint": "Nach dem Schreiben klicke auf \"Eintrag abschlie\u00dfen\", um Emotionsanalyse, Zusammenfassungen und Kunstwerke zu erhalten.",
+        "ui.setup.semantic_search_desc": "Verwende die semantische Suche, um Eintr\u00e4ge nach Bedeutung zu finden, nicht nur nach Stichworten.",
+        "ui.entry.voice.record": "Aufnahme",
+        "ui.entry.voice.recording": "Aufnahme:",
+        "ui.entry.voice.transcribing": "Transkribiere...",
+        "ui.entry.voice.detected": "Erkannt:",
+        "ui.entry.voice.confidence": "Konfidenz:",
+        "ui.entry.voice.insert_at_cursor": "An Cursor einfügen",
+        "ui.entry.voice.replace_all": "Alles ersetzen",
+        "ui.entry.voice.dismiss": "Schließen",
+        "ui.entry.voice.try_again": "Erneut versuchen",
+        
+        # Entry Form - Go Deeper
+        "ui.entry.deeper.title": "Tiefer eintauchen",
+        "ui.entry.deeper.generate_question": "Frage generieren",
+        "ui.entry.deeper.generating": "Generiere eine reflektierende Frage...",
+        "ui.entry.deeper.click_to_insert": "Klicke auf die Frage, um sie in deinen Eintrag einzufügen",
+        "ui.entry.deeper.new_question": "Neue Frage",
+        "ui.entry.deeper.empty_hint": "Schreibe etwas oben, dann klicke auf \"Frage generieren\", um eine KI-gestützte Anregung zu erhalten, die dir hilft, deine Gedanken tiefer zu erforschen.",
+        
+        # Error Pages
+        "ui.error.404.title": "Seite nicht gefunden",
+        "ui.error.404.subtitle": "Die gesuchte Seite existiert nicht oder wurde verschoben.",
+        "ui.error.404.back_home": "Zurück zum Dashboard",
+        "ui.error.404.view_journal": "Tagebuch ansehen",
+        "ui.error.404.search_hint": "Suchst du etwas Bestimmtes? Versuche die",
+        "ui.error.404.search_page": "Suchseite",
+        "ui.error.500.title": "Etwas ist schief gelaufen",
+        "ui.error.500.subtitle": "Es tut uns leid, aber auf unserer Seite ist etwas schief gelaufen.",
+        "ui.error.500.suggestions": "Was du tun kannst:",
+        "ui.error.500.refresh": "Seite aktualisieren",
+        "ui.error.500.go_back": "Zur vorherigen Seite zurückkehren",
+        "ui.error.500.check_status": "Überprüfe die",
+        "ui.error.500.system_status": "Systemstatus",
+        "ui.error.500.page_text": "Seite",
+        "ui.error.500.report_issue": "Wenn das Problem weiterhin besteht, melde es bitte",
+        "ui.error.500.back_dashboard": "Zurück zum Dashboard",
+        "ui.error.500.check_status_btn": "Status prüfen",
+        
+        # Ask / Chat
+        "ui.ask.error_message": "Etwas ist schief gelaufen. Bitte versuche es erneut.",
+        "ui.ask.new_chat_title": "Neuer Chat",
+        "ui.ask.untitled_chat": "Unbenannter Chat",
+        "ui.ask.entry_focus": "Eintrag-Fokus",
+        "ui.ask.global": "Global",
+        "ui.ask.entry_focus_desc": "Eintrag-Fokus: Diskussion über einen einzelnen Eintrag",
+        "ui.ask.global_context_desc": "Globaler Kontext: alle Einträge",
+        "ui.ask.therapist": "Therapeut",
+        "ui.ask.data_analyst": "Datenanalyst",
+        "ui.ask.context_prefix": "Kontext:",
+        "ui.ask.context_all_entries": "alle Einträge",
+        
+        # Setup Wizard
+        "ui.setup.semantic_search_desc": "Verwende die semantische Suche, um Einträge nach Bedeutung zu finden, nicht nur nach Stichwörtern.",
     },
 }
 
 
 def normalize_language(lang):
     if not lang:
-        return "en"
+        return "de"
     code = str(lang).strip().lower().replace("_", "-")
     short = code.split("-", 1)[0]
-    return short if short in TRANSLATIONS else "en"
+    return short if short in TRANSLATIONS else "de"
 
 
-def translate(key, lang="en", **kwargs):
-    """Translate a key with fallback to English and optional format args."""
+def translate(key, lang="de", **kwargs):
+    """Translate a key with fallback to German and optional format args."""
     code = normalize_language(lang)
-    text = TRANSLATIONS.get(code, {}).get(key) or TRANSLATIONS["en"].get(key) or key
+    text = TRANSLATIONS.get(code, {}).get(key) or TRANSLATIONS["de"].get(key) or key
     if kwargs:
         try:
             return text.format(**kwargs)
@@ -996,12 +1351,12 @@ def translate(key, lang="en", **kwargs):
     return text
 
 
-def get_prompt(prompt_key, lang="en", **kwargs):
+def get_prompt(prompt_key, lang="de", **kwargs):
     """Get an AI prompt with language parameter substitution.
     
     Args:
         prompt_key: The translation key for the prompt (e.g., "prompt.analyze_entry")
-        lang: Language code (default: "en")
+        lang: Language code (default: "de")
         **kwargs: Additional format parameters (e.g., style="watercolor")
     
     Returns:
@@ -1014,7 +1369,7 @@ def get_prompt(prompt_key, lang="en", **kwargs):
         "en": "English",
         "de": "German",
     }
-    response_language = lang_names.get(code, "English")
+    response_language = lang_names.get(code, "German")
     
     # Merge response_language into kwargs
     format_params = {"response_language": response_language, **kwargs}

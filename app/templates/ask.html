@@ -58,6 +58,17 @@
     const ENTRY_CONTEXT = {{ entry.id | tojson if entry else 'null' }};
     const ENTRY_TITLE = {{ entry.summary | tojson if entry else 'null' }};
     const STORAGE_KEY = 'journal_chat_threads';
+    const ERROR_MESSAGE = {{ t('ui.ask.error_message') | tojson }};
+    const NEW_CHAT_TITLE = {{ t('ui.ask.new_chat_title') | tojson }};
+    const UNTITLED_CHAT = {{ t('ui.ask.untitled_chat') | tojson }};
+    const ENTRY_FOCUS = {{ t('ui.ask.entry_focus') | tojson }};
+    const GLOBAL = {{ t('ui.ask.global') | tojson }};
+    const ENTRY_FOCUS_DESC = {{ t('ui.ask.entry_focus_desc') | tojson }};
+    const GLOBAL_CONTEXT_DESC = {{ t('ui.ask.global_context_desc') | tojson }};
+    const THERAPIST = {{ t('ui.ask.therapist') | tojson }};
+    const DATA_ANALYST = {{ t('ui.ask.data_analyst') | tojson }};
+    const CONTEXT_PREFIX = {{ t('ui.ask.context_prefix') | tojson }};
+    const CONTEXT_ALL_ENTRIES = {{ t('ui.ask.context_all_entries') | tojson }};
 
     const threadList = document.getElementById('thread-list');
     const chatWindow = document.getElementById('chat-window');
@@ -89,7 +100,7 @@
         const mode = ENTRY_CONTEXT ? 'entry' : 'global';
         const thread = {
             id,
-            title: ENTRY_TITLE || 'New chat',
+            title: ENTRY_TITLE || NEW_CHAT_TITLE,
             mode,
             entry_id: ENTRY_CONTEXT,
             created_at: new Date().toISOString(),
@@ -111,8 +122,8 @@
             const isActive = thread.id === activeThreadId;
             return `
                 <button class="w-full text-left px-3 py-2 rounded-xl text-sm ${isActive ? 'thread-active' : 'text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700'}" data-thread="${thread.id}">
-                    <div class="font-medium truncate">${thread.title || 'Untitled chat'}</div>
-                    <div class="text-[11px] opacity-70">${thread.mode === 'entry' ? 'Entry focus' : 'Global'}</div>
+                    <div class="font-medium truncate">${thread.title || UNTITLED_CHAT}</div>
+                    <div class="text-[11px] opacity-70">${thread.mode === 'entry' ? ENTRY_FOCUS : GLOBAL}</div>
                 </button>
             `;
         }).join('');
@@ -143,18 +154,18 @@
         chatWindow.scrollTop = chatWindow.scrollHeight;
 
         if (thread.mode === 'entry') {
-            chatContext.textContent = 'Entry focus: discussing a single entry';
-            personaPill.textContent = 'Therapist';
-            contextWindow.textContent = `Context: ${ENTRY_TITLE || 'entry'}`;
+            chatContext.textContent = ENTRY_FOCUS_DESC;
+            personaPill.textContent = THERAPIST;
+            contextWindow.textContent = `${CONTEXT_PREFIX} ${ENTRY_TITLE || 'entry'}`;
         } else {
-            chatContext.textContent = 'Global context: all entries';
-            personaPill.textContent = 'Data Analyst';
-            contextWindow.textContent = 'Context: all entries';
+            chatContext.textContent = GLOBAL_CONTEXT_DESC;
+            personaPill.textContent = DATA_ANALYST;
+            contextWindow.textContent = `${CONTEXT_PREFIX} ${CONTEXT_ALL_ENTRIES}`;
         }
     }
 
     function updateThreadTitle(thread, message) {
-        if (thread.title && thread.title !== 'New chat') return;
+        if (thread.title && thread.title !== NEW_CHAT_TITLE) return;
         thread.title = message.slice(0, 40);
     }
 
@@ -192,7 +203,7 @@
             saveThreads();
             renderMessages();
         } catch (e) {
-            thread.messages.push({ role: 'assistant', content: 'Something went wrong. Please try again.', timestamp: new Date().toISOString() });
+            thread.messages.push({ role: 'assistant', content: ERROR_MESSAGE, timestamp: new Date().toISOString() });
             saveThreads();
             renderMessages();
         } finally {
