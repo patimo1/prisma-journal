@@ -649,6 +649,11 @@ def dashboard():
 
     recent = get_all_entries(limit=3)
     count = get_entry_count()
+    # Only show the "Last week" suggestions label when there is enough recent data.
+    last_week_start = (datetime.now() - timedelta(days=7)).date().isoformat()
+    today = datetime.now().date().isoformat()
+    last_week_count = get_filtered_entry_count(date_from=last_week_start, date_to=today)
+    has_last_week_suggestions = last_week_count >= 3
     prompts = get_random_prompts(3)
     streak = get_streak()
     top_emotion = get_top_emotion()
@@ -659,6 +664,7 @@ def dashboard():
         "dashboard.html",
         entries=recent,
         entry_count=count,
+        has_last_week_suggestions=has_last_week_suggestions,
         prompts=prompts,
         streak=streak,
         top_emotion=top_emotion,

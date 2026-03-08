@@ -44,6 +44,9 @@
 ## 🐛 Known Bugs
 
 ### Critical
+- []
+
+### High
 - [] **Recurring Chinese characters in DeepSeek responses**
   - Issue: Chinese characters appearing where DeepSeek is used
   - Needs investigation and fix
@@ -56,7 +59,6 @@
   - Consider: Adding to setup docs or fixing in requirements.txt
 
 ### UI
-  - Dashboard: "Last Week" shown, without any data, should be hidden
   - Colors should be more fitting to the background, it's hard to see text sometimes
 
 
@@ -65,6 +67,16 @@
 ## ✅ Completed
 
 ### Recently Done
+- **Dashboard Suggestions: Last Week visibility fix**
+  - "Last week" label in Suggestions now only appears when enough recent entries are available
+  - Added backend gating based on last 7 days entry count
+
+- **Entry Artwork Reset/Delete**
+  - Added delete/reset button in `/entry/<id>` under "Entry Artwork"
+  - Added backend endpoint `POST /api/delete/artwork`
+  - Clearing artwork now resets `artwork_path` and `artwork_style` to empty state
+  - Added EN/DE i18n keys for delete confirm, loading, success, and error states
+
 - **LM Studio Support**
   - Added LM Studio as alternative LLM provider
   - OpenAI-compatible API integration
