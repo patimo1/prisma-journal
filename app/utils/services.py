@@ -475,6 +475,12 @@ def _diagnose_lmstudio() -> dict:
         diag["setup_instructions"] = "LM Studio may be busy; try again or restart its local server."
     except Exception as e:
         diag["message"] = f"Error: {str(e)}"
+        diag["setup_instructions"] = (
+            "1. Install LM Studio from https://lmstudio.ai\n"
+            "2. Open LM Studio and load a model\n"
+            "3. Go to Developer tab and start the Local Server\n"
+            f"4. Verify it's accessible at {Config.LMSTUDIO_BASE_URL}/models"
+        )
 
     return diag
 
