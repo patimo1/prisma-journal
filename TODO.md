@@ -29,9 +29,6 @@
   - Add preset date ranges (last week, month, year)
   - Improve filter UX
 
-- [ ] **Localization / multi language support
-  - Full English language support
-
 ### Low Priority
 
 
@@ -83,7 +80,7 @@
   - Full English localization
   - Multi-language UI support
 
-- **Bug fixes/Other improvements**
+- **Bug fixes/other improvements**
   - Dashboard insights now skip expensive AI analysis when not enough entries exist
   - Prevented unnecessary Big Five, Baustellen, and recurring-topic generation on empty datasets
   - Reduced dashboard load blocking by deferring external D3 CDN script loading
