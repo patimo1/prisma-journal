@@ -215,21 +215,21 @@
                     {% endif %}
 
                     <div class="flex items-center gap-2 mt-2 text-xs text-surface-400 dark:text-surface-500">
-                        <span>{{ entry.created_at[:10] }}</span>
+                        <span>{{ entry.created_at | format_date }}</span>
                         <span>&middot;</span>
                         <span>{{ t('ui.journal.words', count=entry.word_count) }}</span>
                         {% if entry.emotions %}
                         <span>&middot;</span>
-                        <span class="emo-{{ entry.emotions[0].emotion }} px-1.5 py-0.5 rounded-full text-xs capitalize">{{ entry.emotions[0].emotion }}</span>
+                        <span class="emo-{{ entry.emotions[0].emotion }} px-1.5 py-0.5 rounded-full text-xs capitalize">{{ t('emotions.' + entry.emotions[0].emotion) }}</span>
                         {% endif %}
                     </div>
                 </div>
 
                 {# List-view meta block #}
                 <div class="card-meta-block hidden pr-4">
-                    <span class="text-xs text-surface-400">{{ entry.created_at[:10] }}</span>
+                    <span class="text-xs text-surface-400">{{ entry.created_at | format_date }}</span>
                     {% if entry.emotions %}
-                    <span class="block mt-1 emo-{{ entry.emotions[0].emotion }} px-1.5 py-0.5 rounded-full text-xs capitalize text-center">{{ entry.emotions[0].emotion }}</span>
+                    <span class="block mt-1 emo-{{ entry.emotions[0].emotion }} px-1.5 py-0.5 rounded-full text-xs capitalize text-center">{{ t('emotions.' + entry.emotions[0].emotion) }}</span>
                     {% endif %}
                 </div>
             </a>

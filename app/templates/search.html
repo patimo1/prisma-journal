@@ -35,10 +35,10 @@
             <h3 class="font-semibold text-surface-900 dark:text-surface-50">{{ entry.summary or entry.content[:60] ~ '...' }}</h3>
             <p class="text-sm text-surface-600 dark:text-surface-400 mt-1 line-clamp-2">{{ entry.content[:200] }}{% if entry.content|length > 200 %}...{% endif %}</p>
             <div class="flex items-center gap-2 mt-2">
-                <span class="text-xs text-surface-400 dark:text-surface-500">{{ entry.created_at[:10] }}</span>
+                <span class="text-xs text-surface-400 dark:text-surface-500">{{ entry.created_at | format_date }}</span>
                 <span class="text-xs bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-300 px-2 py-0.5 rounded-full">{{ entry.entry_type }}</span>
                 {% if entry.emotions %}
-                <span class="text-xs bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-300 px-2 py-0.5 rounded-full">{{ entry.emotions[0].emotion }}</span>
+                <span class="text-xs bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-300 px-2 py-0.5 rounded-full">{{ t('emotions.' + entry.emotions[0].emotion) }}</span>
                 {% endif %}
             </div>
         </a>
